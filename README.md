@@ -3,7 +3,7 @@
 A modern REST API boilerplate built with Rust, implementing clean architecture principles. This project demonstrates a well-structured application using Actix-web, SQLx, and PostgreSQL.
 
 <p align="center">
-  <img src="docs/images/architecture.png" alt="Architecture Overview">
+  <img src="src/docs/images/architecture.png" alt="Architecture Overview">
 </p>
 
 ## 🏗️ Architecture
@@ -30,12 +30,12 @@ src/
 ## Class Diagram
 
 <p align="center">
-  <img src="docs/images/classdiagram.png" alt="Class Diagram">
+  <img src="src/docs/images/classdiagram.png" alt="Class Diagram">
 </p>
 
 
 ## Sequence Diagram
 
 <p align="center">
-  <img src="docs/images/sequence_diagram.png" alt="Sequence Diagram">
+  <img src="src/docs/images/sequence_diagram.png" alt="Sequence Diagram">
 </p>
