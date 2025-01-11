@@ -1,10 +1,14 @@
-use actix_web::{middleware , web , App , HttpServer};
+use actix_web::{web, App, HttpServer};
+use actix_web::middleware::{Logger, NormalizePath};
 use dotenv::dotenv;
 use sqlx::postgres::PgPoolOptions;
-use tracing_subscriber::{layer::SubscriberExt , util::SubscriberInitExt};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::repositories::user_repository::UserRepository;
-use crate::services::user_service::UserService;
+use crate::repositories::subscriber_repository::SubscriberRepository;
+use crate::services::subscriber_service::SubscriberService;
+use crate::repositories::lists_repository::ListsRepository;
+use crate::services::list_service::ListService;
+use crate::middleware::auth::AuthMiddleware;
 
 mod api;
 mod config;
@@ -12,6 +16,7 @@ mod error;
 mod models;
 mod repositories;
 mod services;
+mod middleware;
 
 pub struct AppState {
     db : sqlx::PgPool,
@@ -29,6 +34,7 @@ async fn main() -> std::io::Result<()> {
         .init();
     // Chargement de la configuration
     let config = config::Config::from_env().expect("Server configuration failed");
+    let api_key = std::env::var("API_KEY").expect("API_KEY is not set");
     // Creation de la pool de connexion a la base de donnees
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -43,16 +49,21 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to migrate the database");
 
     // Initialisation des composants
-    let user_repository = UserRepository::new(pool.clone());
-    let user_service = web::Data::new(UserService::new(user_repository));
+    let subscriber_repository = SubscriberRepository::new(pool.clone());
+    let subscriber_service = web::Data::new(SubscriberService::new(subscriber_repository));
+
+    let lists_repository = ListsRepository::new(pool.clone());
+    let lists_service = web::Data::new(ListService::new(lists_repository));
 
     //Creation du serveur HTTP
     println!("Server running on http://{}:{}", config.server.host, config.server.port);
     HttpServer::new(move || {
         App::new()
-            .app_data(user_service.clone())
-            .wrap(middleware::Logger::default())
-            .wrap(middleware::NormalizePath::trim())
+            .wrap(Logger::default())
+            .wrap(NormalizePath::trim())
+            .wrap(AuthMiddleware::new(api_key.clone()))
+            .app_data(subscriber_service.clone())
+            .app_data(lists_service.clone())
             .configure(api::config)
     })
     .bind((config.server.host, config.server.port))?
