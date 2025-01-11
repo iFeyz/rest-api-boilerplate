@@ -39,3 +39,4 @@ src/
 <p align="center">
   <img src="src/docs/images/sequence_diagram.png" alt="Sequence Diagram">
 </p>
+# rust-mailer-saas
