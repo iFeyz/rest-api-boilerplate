@@ -6,11 +6,30 @@ use chrono::{DateTime, Utc};
 pub struct Template {
     pub id: i32,
     pub name: String,
+    #[sqlx(rename = "type")]
+    pub template_type: TemplateType,
     pub subject: String,
     pub body: String,
     pub is_default: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug , Serialize , Deserialize , sqlx::Type , Clone , Default)]
+#[sqlx(type_name = "template_type", rename_all = "lowercase")]
+pub enum TemplateType {
+    #[default]
+    Campaign,
+    Tx,
+}
+
+impl ToString for TemplateType {
+    fn to_string(&self) -> String {
+        match self {
+            TemplateType::Campaign => "campaign".to_string(),
+            TemplateType::Tx => "tx".to_string(),
+        }
+    }
 }
 
 #[derive(Debug , Deserialize)]
@@ -18,11 +37,8 @@ pub struct PaginationDto {
     #[serde(default)]
     pub query: Option<String>,
 
-    #[serde(default)]
-    pub type: Option<TemplateType>,
-
     #[serde(rename = "order_by")]
-    #[serde(default = "default_order_by")]
+    #[serde(default = "default_template_order_by")]
     pub order_by: String,
     
     #[serde(default = "default_order")]
@@ -52,9 +68,22 @@ fn default_template_per_page() -> i32 {
     10
 }
 
+fn default_order() -> String {
+    "created_at".to_string()
+}
+
+fn default_page() -> i32 {
+    1
+}
+
+fn default_per_page() -> i32 {
+    10
+}
+
 #[derive(Debug  , Deserialize)]
 pub struct CreateTemplateDto {
     pub name: String,
+    pub template_type: TemplateType,
     pub subject: String,
     pub body: String,
     pub is_default: bool,

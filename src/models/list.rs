@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
-use sqlx::types::JsonValue;
 use uuid::Uuid;
 use sqlx::FromRow;
 
@@ -125,15 +124,4 @@ fn default_list_page() -> i32 {
 
 fn default_list_per_page() -> i32 {
     10
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UpdateListDto {
-    pub name: Option<String>,
-    #[serde(rename = "type")]
-    pub r#type: Option<ListType>,
-    pub optin: Option<ListOptin>,
-    #[serde(default)]
-    pub tags: Option<Vec<String>>,
-    pub description: Option<String>,
 }

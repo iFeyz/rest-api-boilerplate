@@ -1,5 +1,3 @@
-use uuid::Uuid;
-
 use crate::{
     error::ApiError,
     models::list::{List, CreateListDto, ListPaginationDto},

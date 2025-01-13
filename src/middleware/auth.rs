@@ -48,7 +48,8 @@ where
     type Response = ServiceResponse<EitherBody<B>>;
     type Error = Error;
     type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
-
+    
+        
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
@@ -60,7 +61,7 @@ where
                 Ok(res.map_into_left_body())
             });
         }
-
+        println!("Request: {:?}", req);
         let auth_header = req.headers().get("X-API-Key");
         
         match auth_header {
@@ -82,6 +83,7 @@ where
                 }
             }
             None => {
+          
                 println!("No API key provided");
                 let res = HttpResponse::Unauthorized()
                     .json(serde_json::json!({
