@@ -7,7 +7,7 @@ pub struct Template {
     pub id: i32,
     pub name: String,
     #[sqlx(rename = "type")]
-    pub template_type: TemplateType,
+    pub template_type: Option<TemplateType>,
     pub subject: String,
     pub body: String,
     pub is_default: bool,
@@ -93,6 +93,7 @@ pub struct CreateTemplateDto {
 pub struct UpdateTemplateDto {
     pub name: Option<String>,
     pub subject: Option<String>,
+    pub template_type: Option<TemplateType>,
     pub body: Option<String>,
     pub is_default: Option<bool>,
 }

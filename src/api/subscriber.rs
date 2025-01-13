@@ -12,6 +12,7 @@ pub fn config() -> actix_web::Scope {
         .service(get_subscribers)
         .service(delete_subscriber)
         .service(update_subscriber)
+        
       //  .service(get_subscriber_by_email)
       //  .service(get_subscriber_by_id)
       //  .service(delete_subscriber)

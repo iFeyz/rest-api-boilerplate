@@ -25,11 +25,11 @@ impl TemplateService {
         self.repository.find_all(&pagination).await
     }
 
-    pub async fn update(&self, id: i32, template: UpdateTemplateDto) -> Result<Template, ApiError> {
+    pub async fn update(&self, id: i32, template: UpdateTemplateDto) -> Result<Option<Template>, ApiError> {
         self.repository.update(id, template).await
     }
 
-    pub async fn delete(&self, id: i32) -> Result<(), ApiError> {
+    pub async fn delete(&self, id: i32) -> Result<Option<Template>, ApiError> {
         self.repository.delete(id).await
     }
 }

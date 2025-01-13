@@ -47,8 +47,10 @@ pub async fn update_template(
     path: web::Path<i32>,
     template: web::Json<UpdateTemplateDto>,
 ) -> Result<HttpResponse, ApiError> {
-    let template = service.update(path.into_inner(), template.into_inner()).await?;
-    Ok(HttpResponse::Ok().json(template))
+    match service.update(path.into_inner(), template.into_inner()).await? {
+        Some(template) => Ok(HttpResponse::Ok().json(template)),
+        None => Err(ApiError::NotFound)
+    }
 }
 
 #[delete("/{id}")]
@@ -56,6 +58,8 @@ pub async fn delete_template(
     service: web::Data<TemplateService>,
     path: web::Path<i32>,
 ) -> Result<HttpResponse, ApiError> {
-    service.delete(path.into_inner()).await?;
-    Ok(HttpResponse::NoContent().finish())
+    match service.delete(path.into_inner()).await? {
+        Some(_) => Ok(HttpResponse::NoContent().finish()),
+        None => Err(ApiError::NotFound)
+    }
 }

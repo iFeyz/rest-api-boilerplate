@@ -38,7 +38,7 @@ pub struct PaginationDto {
     pub list_id: Option<Vec<i32>>,
     
     #[serde(default)]
-    pub subscription_status: Option<SubscriberStatus>,
+    pub subscriber_status: Option<SubscriberStatus>,
     
     #[serde(rename = "order_by")]
     #[serde(default = "default_order_by")]

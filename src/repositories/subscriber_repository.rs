@@ -174,7 +174,7 @@ impl SubscriberRepository {
         }
 
         // Status filter
-        if let Some(status) = &params.subscription_status {
+        if let Some(status) = &params.subscriber_status {
             if first_condition {
                 query.push(" WHERE ");
             } else {
