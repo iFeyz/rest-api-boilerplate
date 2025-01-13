@@ -13,6 +13,8 @@ use crate::services::list_service::ListService;
 use crate::middleware::auth::AuthMiddleware;
 use crate::repositories::template_repository::TemplateRepository;
 use crate::services::template_service::TemplateService;
+use crate::repositories::subscriber_list_repository::SubscriberListRepository;
+use crate::services::subscriber_list_service::SubscriberListService;
 
 mod api;
 mod config;
@@ -60,6 +62,9 @@ async fn main() -> std::io::Result<()> {
     let template_repository = TemplateRepository::new(pool.clone());
     let template_service = web::Data::new(TemplateService::new(template_repository));
 
+    let subscriber_list_repository = SubscriberListRepository::new(pool.clone());
+    let subscriber_list_service = web::Data::new(SubscriberListService::new(subscriber_list_repository));
+
     println!("Server running on http://{}:{}", config.server.host, config.server.port);
     HttpServer::new(move || {
         let cors = Cors::permissive()
@@ -87,6 +92,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(subscriber_service.clone())
             .app_data(lists_service.clone())
             .app_data(template_service.clone())
+            .app_data(subscriber_list_service.clone())
             .configure(api::config)
     })
     .bind((config.server.host, config.server.port))?
