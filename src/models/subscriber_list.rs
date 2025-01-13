@@ -29,7 +29,7 @@ impl Default for SubscriptionStatus {
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct SubscriberList {
     pub subscriber_id: i32,
-    pub list_id: Option<i32>,
+    pub list_id: i32,
     pub meta: JsonValue,
     pub status: SubscriptionStatus,
     pub created_at: Option<DateTime<Utc>>,
@@ -60,6 +60,7 @@ pub struct GetSubscriberListDto {
 pub struct PaginationDto {
     #[serde(default)]
     pub subscriber_id: Option<i32>,
+
     
     #[serde(default)]
     pub list_id: Option<i32>,

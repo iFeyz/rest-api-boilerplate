@@ -68,58 +68,101 @@ impl SubscriberListRepository {
     }
     // TODO  NOT FINISHED YET
     pub async fn find_all(&self, query: &PaginationDto) -> Result<Vec<SubscriberList>, ApiError> {
-        let mut sql = sqlx::QueryBuilder::new(
-            r#"
-            SELECT 
-                subscriber_id,
-                list_id,
-                meta,
-                status as "status: SubscriptionStatus",
-                created_at,
-                updated_at
-            FROM subscriber_lists WHERE 1=1
-            "#
-        );
-
-        if let Some(subscriber_id) = query.subscriber_id {
-            sql.push(" AND subscriber_id = ");
-            sql.push_bind(subscriber_id);
-        }
-
-        if let Some(list_id) = query.list_id {
-            sql.push(" AND list_id = ");
-            sql.push_bind(list_id);
-        }
-
-        if let Some(status) = &query.status {
-            sql.push(" AND status = ");
-            sql.push_bind(status);
-        }
-
-        // Add ordering
-        let order_by = match query.order_by.as_str() {
-            "subscriber_id" | "list_id" | "status" | "created_at" | "updated_at" => &query.order_by,
-            _ => "created_at"
-        };
-        
-        let order = match query.order.to_uppercase().as_str() {
-            "ASC" | "DESC" => query.order.to_uppercase(),
-            _ => "DESC".to_string()
-        };
-
-        sql.push(&format!(" ORDER BY {} {}", order_by, order));
-
-        // Add pagination
         let offset = (query.page - 1) * query.per_page;
-        sql.push(" LIMIT ")
-            .push_bind(query.per_page)
-            .push(" OFFSET ")
-            .push_bind(offset);
-
-        let subscriber_lists = sql
-            .build_query_as::<SubscriberList>()
-            .fetch_all(&self.pool)
-            .await?;
+        
+        let subscriber_lists = match (query.subscriber_id, query.list_id, &query.status) {
+            (Some(subscriber_id), None, None) => {
+                sqlx::query_as!(
+                    SubscriberList,
+                    r#"
+                    SELECT 
+                        subscriber_id,
+                        list_id,
+                        meta,
+                        status as "status!: SubscriptionStatus",
+                        created_at,
+                        updated_at
+                    FROM subscriber_lists 
+                    WHERE subscriber_id = $1
+                    ORDER BY created_at DESC
+                    LIMIT $2 OFFSET $3
+                    "#,
+                    subscriber_id,
+                    query.per_page as i64,
+                    offset as i64
+                )
+                .fetch_all(&self.pool)
+                .await?
+            },
+            (None, Some(list_id), None) => {
+                sqlx::query_as!(
+                    SubscriberList,
+                    r#"
+                    SELECT 
+                        subscriber_id,
+                        list_id,
+                        meta,
+                        status as "status!: SubscriptionStatus",
+                        created_at,
+                        updated_at
+                    FROM subscriber_lists 
+                    WHERE list_id = $1
+                    ORDER BY created_at DESC
+                    LIMIT $2 OFFSET $3
+                    "#,
+                    list_id,
+                    query.per_page as i64,
+                    offset as i64
+                )
+                .fetch_all(&self.pool)
+                .await?
+            },
+            (Some(subscriber_id), Some(list_id), None) => {
+                sqlx::query_as!(
+                    SubscriberList,
+                    r#"
+                    SELECT 
+                        subscriber_id,
+                        list_id,
+                        meta,
+                        status as "status!: SubscriptionStatus",
+                        created_at,
+                        updated_at
+                    FROM subscriber_lists 
+                    WHERE subscriber_id = $1 AND list_id = $2
+                    ORDER BY created_at DESC
+                    LIMIT $3 OFFSET $4
+                    "#,
+                    subscriber_id,
+                    list_id,
+                    query.per_page as i64,
+                    offset as i64
+                )
+                .fetch_all(&self.pool)
+                .await?
+            },
+            _ => {
+                sqlx::query_as!(
+                    SubscriberList,
+                    r#"
+                    SELECT 
+                        subscriber_id,
+                        list_id,
+                        meta,
+                        status as "status!: SubscriptionStatus",
+                        created_at,
+                        updated_at
+                    FROM subscriber_lists 
+                    ORDER BY created_at DESC
+                    LIMIT $1 OFFSET $2
+                    "#,
+                    query.per_page as i64,
+                    offset as i64
+                )
+                .fetch_all(&self.pool)
+                .await?
+            }
+        };
 
         Ok(subscriber_lists)
     }
