@@ -125,3 +125,14 @@ fn default_list_page() -> i32 {
 fn default_list_per_page() -> i32 {
     10
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateListDto {
+    pub id: i32,
+    pub name: Option<String>,
+    #[serde(rename = "type")]
+    pub r#type: Option<ListType>,
+    pub optin: Option<ListOptin>,
+    pub tags: Option<Vec<String>>,
+    pub description: Option<String>,
+}

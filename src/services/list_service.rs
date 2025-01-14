@@ -1,7 +1,7 @@
 use crate::{
     error::ApiError,
-    models::list::{List, CreateListDto, ListPaginationDto},
-    repositories::lists_repository::ListsRepository
+    models::list::{List, CreateListDto, UpdateListDto, ListPaginationDto},
+    repositories::list_repository::ListsRepository
 };
 
 pub struct ListService {
@@ -31,5 +31,10 @@ impl ListService {
     pub async fn delete_list(&self , id : i32) -> Result<Option<List>, ApiError> {
         println!("Deleting list by id: {}", id);
         self.repository.delete(id).await
+    }
+
+    pub async fn update_list(&self, dto: UpdateListDto) -> Result<List, ApiError> {
+        println!("Updating list: {:?}", dto);
+        self.repository.update(dto).await
     }
 }

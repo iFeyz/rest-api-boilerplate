@@ -1,8 +1,7 @@
 use sqlx::PgPool;
 use crate::{
     error::ApiError,
-    models::list::{List, CreateListDto, ListType, ListOptin},
-    models::list::ListPaginationDto,
+    models::list::{List, CreateListDto, ListPaginationDto, UpdateListDto, ListType, ListOptin}
 };
 
 pub struct ListsRepository {
@@ -157,6 +156,41 @@ impl ListsRepository {
             id
         )
         .fetch_optional(&self.pool)
+        .await?;
+        Ok(list)
+    }
+
+    pub async fn update(&self, list: UpdateListDto) -> Result<List, ApiError> {
+        let list = sqlx::query_as!(
+            List,
+            r#"
+            UPDATE lists 
+            SET 
+                name = CASE WHEN $1::text IS NOT NULL THEN $1 ELSE name END,
+                "type" = CASE WHEN $2::text IS NOT NULL THEN $2::list_type ELSE "type" END,
+                optin = CASE WHEN $3::text IS NOT NULL THEN $3::list_optin ELSE optin END,
+                tags = CASE WHEN $4::text[] IS NOT NULL THEN $4 ELSE tags END,
+                description = CASE WHEN $5::text IS NOT NULL THEN $5 ELSE description END
+            WHERE id = $6
+            RETURNING 
+                id, 
+                uuid,
+                name,
+                "type" as "type!: ListType",
+                optin as "optin!: ListOptin",
+                tags as "tags!: Vec<String>",
+                description,
+                created_at,
+                updated_at
+            "#,
+            list.name.as_deref(),
+            list.r#type.map(|t| t.to_string()),
+            list.optin.map(|o| o.to_string()),
+            list.tags.as_deref(),
+            list.description,
+            list.id
+        )
+        .fetch_one(&self.pool)
         .await?;
         Ok(list)
     }

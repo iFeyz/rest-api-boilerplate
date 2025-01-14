@@ -3,6 +3,7 @@ pub mod lists;
 pub mod template;
 pub mod subscriber_list;
 pub mod campaign;
+pub mod campaign_list;
 use actix_web::web;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
@@ -11,5 +12,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(template::config());
     cfg.service(subscriber_list::config());
     cfg.service(campaign::config());
+    cfg.service(campaign_list::config());
 }
+
 

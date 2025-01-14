@@ -8,7 +8,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::repositories::subscriber_repository::SubscriberRepository;
 use crate::services::subscriber_service::SubscriberService;
-use crate::repositories::lists_repository::ListsRepository;
+use crate::repositories::list_repository::ListsRepository;
 use crate::services::list_service::ListService;
 use crate::middleware::auth::AuthMiddleware;
 use crate::repositories::template_repository::TemplateRepository;
@@ -17,6 +17,8 @@ use crate::repositories::subscriber_list_repository::SubscriberListRepository;
 use crate::services::subscriber_list_service::SubscriberListService;
 use crate::repositories::campaign_repository::CampaignRepository;
 use crate::services::campaign_service::CampaignService;
+use crate::repositories::campaign_list_repository::CampaignListRepository;
+use crate::services::campaign_list_service::CampaignListService;
 
 mod api;
 mod config;
@@ -70,6 +72,9 @@ async fn main() -> std::io::Result<()> {
     let campaign_repository = CampaignRepository::new(pool.clone());
     let campaign_service = web::Data::new(CampaignService::new(campaign_repository));
 
+    let campaign_list_repository = CampaignListRepository::new(pool.clone());
+    let campaign_list_service = web::Data::new(CampaignListService::new(campaign_list_repository));
+
     println!("Server running on http://{}:{}", config.server.host, config.server.port);
     HttpServer::new(move || {
         let cors = Cors::permissive()
@@ -99,6 +104,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(template_service.clone())
             .app_data(subscriber_list_service.clone())
             .app_data(campaign_service.clone())
+            .app_data(campaign_list_service.clone())
             .configure(api::config)
     })
     .bind((config.server.host, config.server.port))?

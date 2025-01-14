@@ -1,6 +1,7 @@
 -- Add migration script here
 -- Add migration script here
 -- Add migration script here
+-- Add migration script here
 DROP TYPE IF EXISTS subscriber_status CASCADE; 
 CREATE TYPE subscriber_status AS ENUM ('enabled', 'disabled', 'blocklisted');
 
@@ -148,3 +149,19 @@ DROP INDEX IF EXISTS idx_camps_status; CREATE INDEX idx_camps_status ON campaign
 DROP INDEX IF EXISTS idx_camps_name; CREATE INDEX idx_camps_name ON campaigns(name);
 DROP INDEX IF EXISTS idx_camps_created_at; CREATE INDEX idx_camps_created_at ON campaigns(created_at);
 DROP INDEX IF EXISTS idx_camps_updated_at; CREATE INDEX idx_camps_updated_at ON campaigns(updated_at);
+
+
+
+DROP TABLE IF EXISTS campaign_lists CASCADE;
+CREATE TABLE campaign_lists (
+    id           BIGSERIAL PRIMARY KEY,
+    campaign_id  INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE ON UPDATE CASCADE,
+
+    -- Lists may be deleted, so list_id is nullable
+    -- and a copy of the original list name is maintained here.
+    list_id      INTEGER NULL REFERENCES lists(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    list_name    TEXT NOT NULL DEFAULT ''
+);
+CREATE UNIQUE INDEX ON campaign_lists (campaign_id, list_id);
+DROP INDEX IF EXISTS idx_camp_lists_camp_id; CREATE INDEX idx_camp_lists_camp_id ON campaign_lists(campaign_id);
+DROP INDEX IF EXISTS idx_camp_lists_list_id; CREATE INDEX idx_camp_lists_list_id ON campaign_lists(list_id);

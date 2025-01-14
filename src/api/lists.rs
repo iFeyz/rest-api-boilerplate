@@ -1,6 +1,6 @@
-use actix_web::{web, HttpResponse, post, get, delete};
+use actix_web::{web, HttpResponse, post, get, delete, put};
 use crate::{
-    models::list::{List, CreateListDto, ListPaginationDto},
+    models::list::{List, CreateListDto, ListPaginationDto, UpdateListDto},
     services::list_service::ListService,
     error::ApiError,
 };
@@ -12,6 +12,7 @@ pub fn config() -> actix_web::Scope{
         .service(get_list_by_id)
         .service(get_lists)
         .service(delete_list)
+        .service(update_list)
 }
 
 #[post("")]
@@ -58,4 +59,17 @@ pub async fn delete_list(
         Some(list) => Ok(HttpResponse::Ok().json(list)),
         None => Err(ApiError::NotFound)
     }
+}
+
+#[put("/{id}")]
+pub async fn update_list(
+    service: web::Data<ListService>,
+    id: web::Path<i32>,
+    list: web::Json<UpdateListDto>
+) -> Result<HttpResponse, ApiError> {
+    let mut update_dto = list.into_inner();
+    update_dto.id = id.into_inner();
+    
+    let list = service.update_list(update_dto).await?;
+    Ok(HttpResponse::Ok().json(list))
 }
