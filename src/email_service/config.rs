@@ -1,7 +1,7 @@
 #[derive(Debug , Clone)]
 pub struct SmtpConfig {
     pub server: String,
-    pub port: u16,
+    pub port: i32,
     pub username: String,
     pub password: String,
     pub sender_email: String,

@@ -227,7 +227,7 @@ fn default_per_page() -> i32 {
     10
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct UpdateCampaignDto {
     #[serde(skip)]
     pub id: Option<i32>,

@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use chrono::{DateTime, Utc};
+use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailRequest {
     pub to: String,
     pub subject: String,
@@ -10,9 +10,9 @@ pub struct EmailRequest {
     pub metadata: HashMap<String, String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailResponse {
-    pub status: String,
     pub message_id: String,
+    pub status: String,
     pub timestamp: DateTime<Utc>,
 } 

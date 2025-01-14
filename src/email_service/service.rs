@@ -11,7 +11,7 @@ use chrono::Utc;
 use uuid::Uuid;
 
 #[derive(Clone)]
-pub struct EmailService<T: Transport<Error = SmtpError> + Send + Sync> {
+pub struct EmailService<T: Transport<Error = SmtpError>> {
     transport: T,
     sender_email: String,
 }
@@ -25,7 +25,7 @@ impl EmailService<SmtpTransport> {
 
         let transport = SmtpTransport::relay(&config.server)
             .map_err(|e| EmailError::ConfigError(e.to_string()))?
-            .port(config.port)
+            .port(config.port.to_string().parse::<u16>().unwrap())
             .credentials(creds)
             .build();
 
@@ -36,7 +36,7 @@ impl EmailService<SmtpTransport> {
     }
 }
 
-impl<T: Transport<Error = SmtpError> + Send + Sync> EmailService<T> {
+impl<T: Transport<Error = SmtpError>> EmailService<T> {
     pub async fn send_email(&self, request: EmailRequest) -> Result<EmailResponse, EmailError> {
         let email = Message::builder()
             .from(self.sender_email.parse::<Mailbox>()

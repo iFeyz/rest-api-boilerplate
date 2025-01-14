@@ -1,15 +1,18 @@
 use crate::{
+    error::ApiError,
     repositories::send_email_repository::SendEmailRepository,
     email_service::models::{EmailRequest, EmailResponse},
-    error::ApiError,
 };
+use lettre::transport::smtp::Error as SmtpError;
+use lettre::Transport;
 
-pub struct SendEmailService {
-    repository: SendEmailRepository,
+#[derive(Clone)]
+pub struct SendEmailService<T: Transport<Error = SmtpError>> {
+    repository: SendEmailRepository<T>,
 }
 
-impl SendEmailService {
-    pub fn new(repository: SendEmailRepository) -> Self {
+impl<T: Transport<Error = SmtpError>> SendEmailService<T> {
+    pub fn new(repository: SendEmailRepository<T>) -> Self {
         Self { repository }
     }
 
