@@ -17,7 +17,6 @@ pub struct Campaign {
     pub content_type: ContentType,
     pub send_at: Option<DateTime<Utc>>,
     pub status: CampaignStatus,
-    #[sqlx(rename = "type")]
     pub campaign_type: CampaignType,
     pub tags: Option<Vec<String>>,
     pub messenger: String,
@@ -181,3 +180,80 @@ pub struct DeleteCampaignDto {
 }
 
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PaginationDto {
+    #[serde(default)]
+    pub query: Option<String>,
+    #[serde(default)]
+    pub id: Option<Vec<i32>>,
+    #[serde(default)]
+    pub status: Option<CampaignStatus>,
+    #[serde(default)]
+    pub campaign_type: Option<CampaignType>,
+    #[serde(default)]
+    pub tags: Option<Vec<String>>,
+    #[serde(default)]
+    pub messenger: Option<String>,
+
+    #[serde(rename = "order_by")]
+    #[serde(default = "default_order_by")]
+    pub order_by: String,
+    
+    #[serde(default = "default_order")]
+    pub order: String,
+    
+    #[serde(default = "default_page")]
+    pub page: i32,
+    
+    #[serde(rename = "per_page")]
+    #[serde(default = "default_per_page")]
+    pub per_page: i32,    
+
+}
+
+fn default_order_by() -> String {
+    "created_at".to_string()
+}
+
+fn default_order() -> String {
+    "DESC".to_string()
+}
+
+fn default_page() -> i32 {
+    1
+}
+
+fn default_per_page() -> i32 {
+    10
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateCampaignDto {
+    #[serde(skip)]
+    pub id: Option<i32>,
+    pub uuid: Option<Uuid>,
+    pub name: Option<String>,
+    pub subject: Option<String>,
+    pub from_email: Option<String>,
+    pub body: Option<String>,
+    pub altbody: Option<String>,
+    pub content_type: Option<ContentType>,
+    pub send_at: Option<DateTime<Utc>>,
+    pub status: Option<CampaignStatus>,
+    pub campaign_type: Option<CampaignType>,
+    pub tags: Option<Vec<String>>,
+    pub messenger: Option<String>,
+    pub template_id: Option<i32>,
+    pub headers: Option<JsonValue>,
+    pub to_send: Option<i32>,
+    pub sent: Option<i32>,
+    pub max_subscriber_id: Option<i32>,
+    pub last_subscriber_id: Option<i32>,
+    pub archive: Option<bool>,
+    pub archive_slug: Option<String>,
+    pub archive_template_id: Option<i32>,
+    pub archive_meta: Option<JsonValue>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
