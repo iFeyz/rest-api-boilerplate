@@ -4,6 +4,7 @@ pub mod template;
 pub mod subscriber_list;
 pub mod campaign;
 pub mod campaign_list;
+pub mod send_email;
 use actix_web::web;
 
 pub fn config(cfg: &mut web::ServiceConfig) {

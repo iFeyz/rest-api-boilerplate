@@ -1,5 +1,6 @@
 use actix_web::{HttpResponse , ResponseError};
 use thiserror::Error;
+use crate::email_service::error::EmailError;
 
 #[derive(Debug , Error)]
 pub enum ApiError {
@@ -9,6 +10,8 @@ pub enum ApiError {
     NotFound,
     #[error("Bad request: {0}")]
     BadRequest(String),
+    #[error("Email error: {0}")]
+    EmailError(#[from] EmailError),
 }
 
 impl ResponseError for ApiError {
@@ -22,6 +25,9 @@ impl ResponseError for ApiError {
             }
             ApiError::BadRequest(msg) => {
                 HttpResponse::BadRequest().json(msg)
+            }
+            ApiError::EmailError(e) => {
+                HttpResponse::InternalServerError().json(e.to_string())
             }
         }
     }
