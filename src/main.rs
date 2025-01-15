@@ -23,6 +23,7 @@ use crate::{
         campaign_list_repository::CampaignListRepository,
         send_email_repository::SendEmailRepository,
         sequence_email_repository::SequenceEmailRepository,
+        email_views_repository::EmailViewsRepository,
     },
     services::{
         subscriber_service::SubscriberService,
@@ -33,6 +34,7 @@ use crate::{
         campaign_list_service::CampaignListService,
         send_email_service::SendEmailService,
         sequence_emails_service::SequenceEmailService,
+        email_views_service::EmailViewsService,
     },
     email_service::{EmailService, config::SmtpConfig},
 };
@@ -90,6 +92,9 @@ async fn main() -> std::io::Result<()> {
     let campaign_list_repository = CampaignListRepository::new(pool.clone());
     let campaign_list_service = web::Data::new(CampaignListService::new(campaign_list_repository));
 
+    let email_views_repository = EmailViewsRepository::new(pool.clone());
+    let email_views_service = web::Data::new(EmailViewsService::new(email_views_repository));
+
     info!("Initializing email service with SMTP config...");
     let email_service: EmailService<SmtpTransport> = EmailService::with_config(SmtpConfig::default())
         .expect("Failed to create email service");
@@ -107,6 +112,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(campaign_list_service.clone())
             .app_data(send_email_service.clone())
             .app_data(sequence_email_service.clone())
+            .app_data(email_views_service.clone())
             .service(api::subscriber::config())
             .service(api::lists::config())
             .service(api::template::config())
@@ -115,6 +121,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::campaign_list::config())
             .service(api::send_email::config())
             .service(api::sequence_email::config())
+            .service(api::email_views::config())
     })
     .bind(("127.0.0.1", 8080))?
     .run()

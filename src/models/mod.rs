@@ -5,3 +5,4 @@ pub mod subscriber_list;
 pub mod campaign;
 pub mod campaign_list;
 pub mod sequence_emails;
+pub mod email_views;

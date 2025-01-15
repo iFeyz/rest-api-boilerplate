@@ -212,7 +212,7 @@ ALTER TABLE campaigns
 DROP TABLE IF EXISTS email_views CASCADE;
 CREATE TABLE email_views (
         id SERIAL PRIMARY KEY,
-        sequence_email_id BIGINT REFERENCES sequence_emails(id) ON DELETE CASCADE,
+        sequence_email_id INTEGER REFERENCES sequence_emails(id) ON DELETE CASCADE,
         subscriber_id INTEGER REFERENCES subscribers(id) ON DELETE CASCADE,
         
         
@@ -225,8 +225,8 @@ CREATE TABLE email_views (
             country TEXT,
             city TEXT,
             region TEXT,
-            latitude DECIMAL(10, 8),
-            longitude DECIMAL(11, 8),
+            latitude TEXT,
+            longitude TEXT,
             
                 metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
