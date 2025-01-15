@@ -12,15 +12,10 @@ pub struct Campaign {
     pub name: String,
     pub subject: String,
     pub from_email: String,
-    pub body: String,
-    pub altbody: String,
-    pub content_type: ContentType,
-    pub send_at: Option<DateTime<Utc>>,
     pub status: CampaignStatus,
     pub campaign_type: CampaignType,
     pub tags: Option<Vec<String>>,
     pub messenger: String,
-    pub template_id: Option<i32>,
     pub headers: JsonValue,
     pub to_send: i32,
     pub sent: i32,
@@ -33,6 +28,8 @@ pub struct Campaign {
     pub started_at: Option<DateTime<Utc>>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+    pub sequence_start_date: Option<DateTime<Utc>>,
+    pub sequence_end_date: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::Type)]
@@ -72,64 +69,27 @@ pub enum CampaignType {
     Optin,
 }
 
-impl ToString for CampaignType {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Regular => "regular".to_string(),
-            Self::Optin => "optin".to_string(),
-        }
-    }
-}
-
 impl Default for CampaignType {
     fn default() -> Self {
         Self::Regular
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "content_type", rename_all = "lowercase")]
-pub enum ContentType {
-    Richtext,
-    Html,
-    Plain,
-    Markdown,
-}
 
-impl ToString for ContentType {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Richtext => "richtext".to_string(),
-            Self::Html => "html".to_string(),
-            Self::Plain => "plain".to_string(),
-            Self::Markdown => "markdown".to_string(),
-        }
-    }
-}
-impl Default for ContentType {
-    fn default() -> Self {
-        Self::Richtext
-    }
-}
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateCampaignDto {
     pub name: String,
     pub subject: String,
     pub from_email: String,
-    pub body: String,
-    pub altbody: String,
-    pub content_type: ContentType,
-    pub send_at: Option<DateTime<Utc>>,
+    pub campaign_type: CampaignType,
     #[serde(default)]
     pub status: CampaignStatus,
-    #[serde(default)]
-    pub campaign_type: CampaignType,
     #[serde(default)]
     pub tags: Option<Vec<String>>,
     #[serde(default = "default_messenger")]
     pub messenger: String,
-    pub template_id: Option<i32>,
     #[serde(default = "default_headers")]
     pub headers: JsonValue,
 }
@@ -149,15 +109,10 @@ pub struct CampaignDto {
     pub name: Option<String>,
     pub subject: Option<String>,
     pub from_email: Option<String>,
-    pub body: Option<String>,
-    pub altbody: Option<String>,
-    pub content_type: Option<ContentType>,
-    pub send_at: Option<DateTime<Utc>>,
     pub status: Option<CampaignStatus>,
     pub campaign_type: Option<CampaignType>,
     pub tags: Option<Vec<String>>,
     pub messenger: Option<String>,
-    pub template_id: Option<i32>,
     pub headers: Option<JsonValue>,
     pub to_send: Option<i32>,
     pub sent: Option<i32>,
@@ -170,6 +125,7 @@ pub struct CampaignDto {
     pub started_at: Option<DateTime<Utc>>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
+
 
 }
 
@@ -194,6 +150,10 @@ pub struct PaginationDto {
     pub tags: Option<Vec<String>>,
     #[serde(default)]
     pub messenger: Option<String>,
+    #[serde(default)]
+    pub sequence_start_date: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub sequence_end_date: Option<DateTime<Utc>>,
 
     #[serde(rename = "order_by")]
     #[serde(default = "default_order_by")]
@@ -235,15 +195,10 @@ pub struct UpdateCampaignDto {
     pub name: Option<String>,
     pub subject: Option<String>,
     pub from_email: Option<String>,
-    pub body: Option<String>,
-    pub altbody: Option<String>,
-    pub content_type: Option<ContentType>,
-    pub send_at: Option<DateTime<Utc>>,
     pub status: Option<CampaignStatus>,
     pub campaign_type: Option<CampaignType>,
     pub tags: Option<Vec<String>>,
     pub messenger: Option<String>,
-    pub template_id: Option<i32>,
     pub headers: Option<JsonValue>,
     pub to_send: Option<i32>,
     pub sent: Option<i32>,
@@ -256,4 +211,6 @@ pub struct UpdateCampaignDto {
     pub started_at: Option<DateTime<Utc>>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
-}
+    pub sequence_start_date: Option<DateTime<Utc>>,
+    pub sequence_end_date: Option<DateTime<Utc>>,
+}   

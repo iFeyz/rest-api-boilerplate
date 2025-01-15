@@ -22,6 +22,7 @@ use crate::{
         campaign_repository::CampaignRepository,
         campaign_list_repository::CampaignListRepository,
         send_email_repository::SendEmailRepository,
+        sequence_email_repository::SequenceEmailRepository,
     },
     services::{
         subscriber_service::SubscriberService,
@@ -31,6 +32,7 @@ use crate::{
         campaign_service::CampaignService,
         campaign_list_service::CampaignListService,
         send_email_service::SendEmailService,
+        sequence_emails_service::SequenceEmailService,
     },
     email_service::{EmailService, config::SmtpConfig},
 };
@@ -42,7 +44,7 @@ async fn main() -> std::io::Result<()> {
     // Initialize logging
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "debug".into())
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into())
         ))
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -79,6 +81,9 @@ async fn main() -> std::io::Result<()> {
     let subscriber_list_repository = SubscriberListRepository::new(pool.clone());
     let subscriber_list_service = web::Data::new(SubscriberListService::new(subscriber_list_repository));
 
+    let sequence_email_repository = SequenceEmailRepository::new(pool.clone());
+    let sequence_email_service = web::Data::new(SequenceEmailService::new(sequence_email_repository));
+
     let campaign_repository = CampaignRepository::new(pool.clone());
     let campaign_service = web::Data::new(CampaignService::new(campaign_repository));
 
@@ -91,13 +96,9 @@ async fn main() -> std::io::Result<()> {
     let send_email_repository = SendEmailRepository::new(pool.clone(), email_service);
     let send_email_service = web::Data::new(SendEmailService::new(send_email_repository));
 
-    // Share the pool with the app
-    let pool_data = web::Data::new(pool);
-
     info!("Starting HTTP server on 127.0.0.1:8080");
     HttpServer::new(move || {
         App::new()
-            .app_data(pool_data.clone())
             .app_data(subscriber_service.clone())
             .app_data(list_service.clone())
             .app_data(template_service.clone())
@@ -105,6 +106,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(campaign_service.clone())
             .app_data(campaign_list_service.clone())
             .app_data(send_email_service.clone())
+            .app_data(sequence_email_service.clone())
             .service(api::subscriber::config())
             .service(api::lists::config())
             .service(api::template::config())
@@ -112,6 +114,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::campaign::config())
             .service(api::campaign_list::config())
             .service(api::send_email::config())
+            .service(api::sequence_email::config())
     })
     .bind(("127.0.0.1", 8080))?
     .run()

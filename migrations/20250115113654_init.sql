@@ -2,6 +2,7 @@
 -- Add migration script here
 -- Add migration script here
 -- Add migration script here
+-- Add migration script here
 DROP TYPE IF EXISTS subscriber_status CASCADE; 
 CREATE TYPE subscriber_status AS ENUM ('enabled', 'disabled', 'blocklisted');
 
@@ -165,3 +166,76 @@ CREATE TABLE campaign_lists (
 CREATE UNIQUE INDEX ON campaign_lists (campaign_id, list_id);
 DROP INDEX IF EXISTS idx_camp_lists_camp_id; CREATE INDEX idx_camp_lists_camp_id ON campaign_lists(campaign_id);
 DROP INDEX IF EXISTS idx_camp_lists_list_id; CREATE INDEX idx_camp_lists_list_id ON campaign_lists(list_id);
+
+DROP TABLE IF EXISTS sequence_emails CASCADE;
+CREATE TABLE sequence_emails (
+
+        id SERIAL PRIMARY KEY,
+        campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE,
+        position INTEGER NOT NULL,
+        
+        --Contenu de l'email--
+        subject TEXT NOT NULL,
+        body TEXT NOT NULL,
+        template_id INTEGER REFERENCES templates(id),
+        content_type content_type NOT NULL DEFAULT 'richtext',
+        
+        -- Heure de l'envoie --
+        
+        send_at TIMESTAMP WITH TIME ZONE,
+        
+        --Métadonnés --
+        
+        metadata JSONB DEFAULT '{}', 
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        
+);
+
+-- Index pour optimiser les requêtes
+CREATE INDEX idx_sequence_emails_campaign ON sequence_emails(campaign_id);
+CREATE INDEX idx_sequence_emails_position ON sequence_emails(campaign_id, position);
+CREATE INDEX idx_sequence_emails_send_at ON sequence_emails(send_at);
+
+-- Modifications de la table campaigns
+ALTER TABLE campaigns 
+    DROP COLUMN body,
+    DROP COLUMN altbody,
+    DROP COLUMN content_type,
+    DROP COLUMN template_id,
+    DROP COLUMN send_at,
+    ADD COLUMN sequence_start_date TIMESTAMP WITH TIME ZONE,  -- Date de début de la séquence
+    ADD COLUMN sequence_end_date TIMESTAMP WITH TIME ZONE;    -- Date de fin de la séquence
+
+
+DROP TABLE IF EXISTS email_views CASCADE;
+CREATE TABLE email_views (
+        id SERIAL PRIMARY KEY,
+        sequence_email_id BIGINT REFERENCES sequence_emails(id) ON DELETE CASCADE,
+        subscriber_id INTEGER REFERENCES subscribers(id) ON DELETE CASCADE,
+        
+        
+        -- Informations sur l'ouverture
+        opened_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+         ip_address TEXT,
+         user_agent TEXT,    
+         
+             -- Informations de localisation
+            country TEXT,
+            city TEXT,
+            region TEXT,
+            latitude DECIMAL(10, 8),
+            longitude DECIMAL(11, 8),
+            
+                metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour optimiser les requêtes
+CREATE INDEX idx_email_views_sequence_email ON email_views(sequence_email_id);
+CREATE INDEX idx_email_views_subscriber ON email_views(subscriber_id);
+CREATE INDEX idx_email_views_opened_at ON email_views(opened_at);
+CREATE INDEX idx_email_views_location ON email_views(country, city);
+
+
