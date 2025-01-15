@@ -13,6 +13,9 @@ pub struct EmailViewsRepository {
     pool: PgPool,
 }
 
+use chrono::Utc;
+
+
 impl EmailViewsRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }

@@ -5,6 +5,8 @@ use dotenv::dotenv;
 use tracing::{info, warn, error};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use lettre::SmtpTransport;
+use maxminddb::Reader;
+use std::sync::Arc;
 
 mod api;
 mod models;
@@ -44,6 +46,7 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
     // Initialize logging
+    
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into())
@@ -70,6 +73,13 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to migrate database");
     info!("Database migrations completed");
+
+    info!("Initializing GeoIP reader...");
+    let geoip_reader = Reader::open_readfile("GeoIP2-City.mmdb")
+        .expect("Failed to load GeoIP database");
+    let geoip_reader = Arc::new(geoip_reader);
+    let geoip_reader = web::Data::new(geoip_reader);
+    info!("GeoIP database loaded successfully");
 
     let subscriber_repository = SubscriberRepository::new(pool.clone());
     let subscriber_service = web::Data::new(SubscriberService::new(subscriber_repository));
@@ -113,6 +123,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(send_email_service.clone())
             .app_data(sequence_email_service.clone())
             .app_data(email_views_service.clone())
+            .app_data(geoip_reader.clone())
             .service(api::subscriber::config())
             .service(api::lists::config())
             .service(api::template::config())
