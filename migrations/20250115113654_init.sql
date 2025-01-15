@@ -214,6 +214,7 @@ CREATE TABLE email_views (
         id SERIAL PRIMARY KEY,
         sequence_email_id INTEGER REFERENCES sequence_emails(id) ON DELETE CASCADE,
         subscriber_id INTEGER REFERENCES subscribers(id) ON DELETE CASCADE,
+        campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE,
         
         
         -- Informations sur l'ouverture
@@ -239,3 +240,6 @@ CREATE INDEX idx_email_views_opened_at ON email_views(opened_at);
 CREATE INDEX idx_email_views_location ON email_views(country, city);
 
 
+-- Ensure no duplicate entries for the same subscriber_id and sequence_email_id
+ALTER TABLE email_views
+ADD CONSTRAINT unique_subscriber_sequence UNIQUE (subscriber_id, sequence_email_id);

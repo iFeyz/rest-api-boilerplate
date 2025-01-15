@@ -18,6 +18,7 @@ impl SequenceEmailService {
     }
 
     pub async fn find_all(&self, dto: PaginationDto) -> Result<Vec<SequenceEmail>, ApiError> {
+        println!("Finding all sequence emails campaign_id: {}", dto.to_string());
         self.repository.find_all(dto).await
     }
 

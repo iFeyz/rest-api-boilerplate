@@ -9,6 +9,7 @@ pub fn config() -> actix_web::Scope {
     web::scope("/api/campaigns")
         .service(create_campaign)
         .service(get_campaigns)
+        .service(get_campaign)
         .service(update_campaign)
         .service(delete_campaign)
 }
@@ -20,6 +21,15 @@ pub async fn create_campaign(
 ) -> Result<HttpResponse, ApiError> {
     let campaign = service.create_campaign(campaign.into_inner()).await?;
     Ok(HttpResponse::Created().json(campaign))
+}
+
+#[get("/{id}")]
+pub async fn get_campaign(
+    service: web::Data<CampaignService>,
+    id: web::Path<i32>
+) -> Result<HttpResponse, ApiError> {
+    let campaign = service.get_campaign(id.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(campaign))
 }
 
 #[get("")]

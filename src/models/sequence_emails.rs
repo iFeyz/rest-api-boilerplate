@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use chrono::{DateTime, Utc};
-
-#[derive(Debug, Serialize, Deserialize)]
+use sqlx::FromRow;
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct SequenceEmail {
     pub id: i32,    
     pub campaign_id: i32,
@@ -47,8 +47,14 @@ pub struct DeleteSequenceEmailDto {
     pub id: i32
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize , Clone , Default)]
 pub struct PaginationDto {
+    #[serde(default)]
+    pub query: Option<String>,
+
+    #[serde(default)]
+    pub campaign_id: Option<i32>,
+
     #[serde(default = "default_page")]
     pub page: i32,
     
@@ -64,6 +70,12 @@ pub struct PaginationDto {
     pub order: String,
 }
 
+impl PaginationDto {
+    pub fn to_string(&self) -> String {
+        format!(" campaign_id: {}, page: {}, per_page: {}, order_by: {}, order: {}", self.campaign_id.unwrap_or(0), self.page, self.per_page, self.order_by, self.order)
+    }
+}
+
 fn default_page() -> i32 { 1 }
 fn default_per_page() -> i32 { 10 }
 fn default_order_by() -> String { "created_at".to_string() }
@@ -77,3 +89,4 @@ pub enum ContentType {
     Plain,
     Markdown
 }
+

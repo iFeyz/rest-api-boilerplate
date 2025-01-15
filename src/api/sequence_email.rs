@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub fn config() -> actix_web::Scope {
-    web::scope("/api/sequence-emails")
+    web::scope("/api/sequence_emails")
         .service(create_sequence_email)
         .service(get_sequence_emails)
         .service(delete_sequence_email)
@@ -29,7 +29,11 @@ pub async fn get_sequence_emails(
     query: web::Query<PaginationDto>
 ) -> Result<HttpResponse, ApiError> {
     let sequence_emails = service.find_all(query.into_inner()).await?;
-    Ok(HttpResponse::Ok().json(sequence_emails))
+    if sequence_emails.is_empty() {
+        Ok(HttpResponse::Ok().json(Vec::<SequenceEmail>::new()))
+    } else {
+        Ok(HttpResponse::Ok().json(sequence_emails))
+    }
 }
 
 

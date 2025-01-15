@@ -28,9 +28,9 @@ pub async fn create_email_view(
     Ok(HttpResponse::Created().json(email_view))
 }
 
-#[get("/{subscriber_id}/{sequence_email_id}")]
+#[get("/{subscriber_id}/{sequence_email_id}/{campaign_id}")]
 pub async fn get_email_view(
-    path: web::Path<(i32, i32)>,
+    path: web::Path<(i32, i32, i32)>,
     service: web::Data<EmailViewsService>,
     req: HttpRequest,
     geoip_reader: web::Data<Arc<Reader<Vec<u8>>>>,

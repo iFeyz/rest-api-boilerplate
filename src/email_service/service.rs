@@ -44,7 +44,7 @@ impl<T: Transport<Error = SmtpError>> EmailService<T> {
             .to(request.to.parse::<Mailbox>()
                 .map_err(|e| EmailError::InvalidAddress(e.to_string()))?)
             .subject(request.subject)
-            .header(ContentType::TEXT_PLAIN)
+            .header(ContentType::TEXT_HTML)
             .body(request.content.clone())
             .map_err(|e| EmailError::ConfigError(e.to_string()))?;
 

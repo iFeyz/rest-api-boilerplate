@@ -6,6 +6,7 @@ use serde_json::Value as JsonValue;
 #[derive(Debug , Serialize , Deserialize , FromRow)]
 pub struct EmailView {
     pub id: i32,
+    pub campaign_id: Option<i32>,
     pub sequence_email_id: Option<i32>,
     pub subscriber_id : Option<i32>,
     pub opened_at: Option<DateTime<Utc>>,
@@ -24,6 +25,7 @@ pub struct EmailView {
 pub struct CreateEmailViewDto {
     pub sequence_email_id: i32,
     pub subscriber_id: i32,
+    pub campaign_id: i32,
     pub ip_address: Option<String>,
     pub user_agent: Option<String>,
     pub country: Option<String>,
@@ -39,6 +41,7 @@ pub struct GetEmailViewDto {
     pub id: Option<i32>,
     pub sequence_email_id: Option<i32>,
     pub subscriber_id: Option<i32>,
+    pub campaign_id: Option<i32>,
 }
 
 

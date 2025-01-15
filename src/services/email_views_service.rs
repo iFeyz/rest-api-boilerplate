@@ -31,12 +31,13 @@ impl EmailViewsService {
     pub async fn get_email_view(
         &self,
         req: HttpRequest,
-        path: (i32, i32),
+        path: (i32, i32, i32),
         geoip_reader: &maxminddb::Reader<Vec<u8>>
     ) -> Result<EmailView, ApiError> {
         fn get_geo_location(
             subscriber_id: i32,
             sequence_email_id: i32,
+            campaign_id: i32,
             ip_address: String,
             reader: &maxminddb::Reader<Vec<u8>>,
             user_agent: &str
@@ -47,6 +48,7 @@ impl EmailViewsService {
             Some(CreateEmailViewDto {
                 sequence_email_id,
                 subscriber_id,
+                campaign_id,
                 ip_address: Some(ip_address),
                 user_agent: Some(user_agent.to_string()),
                 country: Some(city_info
@@ -82,7 +84,7 @@ impl EmailViewsService {
             })
         }
 
-        let (subscriber_id, sequence_email_id) = path;
+        let (subscriber_id, sequence_email_id, campaign_id) = path;
         
         // Gestion des erreurs pour User-Agent
         let user_agent = req.headers()
@@ -97,6 +99,7 @@ impl EmailViewsService {
         let geo_location = get_geo_location(
             subscriber_id,
             sequence_email_id,
+            campaign_id,
             ip_address.clone(),
             geoip_reader,
             user_agent
@@ -113,6 +116,7 @@ impl EmailViewsService {
                 let basic_dto = CreateEmailViewDto {
                     sequence_email_id,
                     subscriber_id,
+                    campaign_id,
                     ip_address: Some(ip_address),
                     user_agent: Some(user_agent.to_string()),
                     country: None,

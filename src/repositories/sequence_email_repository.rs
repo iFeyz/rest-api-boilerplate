@@ -95,11 +95,14 @@ impl SequenceEmailRepository {
                 created_at as "created_at!: DateTime<Utc>",
                 updated_at as "updated_at!: DateTime<Utc>"
             FROM sequence_emails
+            WHERE campaign_id = $1
             ORDER BY id DESC
-            LIMIT $1 OFFSET $2
+            LIMIT $2 OFFSET $3
             "#,
+            dto.campaign_id,
             dto.per_page as i64,
-            offset as i64
+            offset as i64,
+         
         )
         .fetch_all(&self.pool)
         .await?;

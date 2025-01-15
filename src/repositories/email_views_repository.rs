@@ -25,12 +25,13 @@ impl EmailViewsRepository {
         let email_view = sqlx::query_as!(
             EmailView,
             r#"
-            INSERT INTO email_views (sequence_email_id, subscriber_id, ip_address, user_agent, country, city, region, latitude, longitude, metadata)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            INSERT INTO email_views (sequence_email_id, subscriber_id, campaign_id, ip_address, user_agent, country, city, region, latitude, longitude, metadata)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
             "#,
             dto.sequence_email_id,
             dto.subscriber_id,
+            dto.campaign_id,
             dto.ip_address,
             dto.user_agent,
             dto.country,
@@ -44,4 +45,7 @@ impl EmailViewsRepository {
         .await?;
         Ok(email_view)
     }
+
+
+
 }

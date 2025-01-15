@@ -194,6 +194,43 @@ pub async fn find_all(&self, dto: PaginationDto) -> Result<Option<Vec<Campaign>>
     }
 }
 
+    pub async fn find_by_id(&self, id: i32) -> Result<Option<Campaign>, ApiError> {
+        let campaign = sqlx::query_as!(
+            Campaign,
+            r#"
+            SELECT 
+                id, uuid, 
+                name as "name!", 
+                subject as "subject!", 
+                from_email as "from_email!", 
+                status as "status!: CampaignStatus",
+                campaign_type as "campaign_type!: CampaignType",
+                tags,
+                messenger as "messenger!",
+                headers as "headers!",
+                to_send as "to_send!",
+                sent as "sent!",
+                max_subscriber_id as "max_subscriber_id!",
+                last_subscriber_id as "last_subscriber_id!",
+                archive as "archive!",
+                archive_slug,
+                archive_template_id,
+                archive_meta as "archive_meta!",
+                started_at,
+                created_at,
+                updated_at,
+                sequence_start_date,
+                sequence_end_date
+            FROM campaigns WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(campaign)
+    }
+
     pub async fn update(&self, campaign: UpdateCampaignDto) -> Result<Campaign, ApiError> {
         let campaign = sqlx::query_as!(
             Campaign,

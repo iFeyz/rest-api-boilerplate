@@ -16,6 +16,11 @@ impl CampaignService {
         Self { repository }
     }
 
+    pub async fn get_campaign(&self, id: i32) -> Result<Option<Campaign>, ApiError> {
+        println!("Getting campaign: {:?}", id);
+        self.repository.find_by_id(id).await
+    }
+
     pub async fn create_campaign(&self, dto: CreateCampaignDto) -> Result<Campaign, ApiError> {
         println!("Creating campaign: {:?}", dto);
         self.repository.create(dto).await
