@@ -240,6 +240,7 @@ CREATE INDEX idx_email_views_opened_at ON email_views(opened_at);
 CREATE INDEX idx_email_views_location ON email_views(country, city);
 
 
--- Ensure no duplicate entries for the same subscriber_id and sequence_email_id
+
+-- Ensure no duplicate entries for the same subscriber_id, sequence_email_id, and campaign_id
 ALTER TABLE email_views
-ADD CONSTRAINT unique_subscriber_sequence UNIQUE (subscriber_id, sequence_email_id);
+ADD CONSTRAINT unique_subscriber_sequence_campaign UNIQUE (subscriber_id, sequence_email_id, campaign_id);
