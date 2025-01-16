@@ -7,13 +7,15 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use lettre::SmtpTransport;
 use maxminddb::Reader;
 use std::sync::Arc;
-
+use tokio;
 mod api;
 mod models;
 mod repositories;
 mod services;
 mod error;
 mod email_service;
+use std::time::Duration;
+use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 
 use crate::{
     repositories::{
@@ -80,6 +82,25 @@ async fn main() -> std::io::Result<()> {
     let geoip_reader = Arc::new(geoip_reader);
     let geoip_reader = web::Data::new(geoip_reader);
     info!("GeoIP database loaded successfully");
+
+
+    // Make the thread crash
+    #[tokio::main]
+    async fn main_scheduler() -> Result<() , JobSchedulerError> {
+        let mut sched = JobScheduler::new().await?;
+        sched.add(
+            Job::new("1/10 * * * * *", |_uuid, _l| {
+                println!("I run every 10 seconds");
+            })?
+        ).await?;
+
+        sched.start().await?;
+
+        Ok(())
+    }
+
+  //  main_scheduler();
+    
 
     let subscriber_repository = SubscriberRepository::new(pool.clone());
     let subscriber_service = web::Data::new(SubscriberService::new(subscriber_repository));
