@@ -1,11 +1,12 @@
-use sqlx::{PgPool, Execute};
+use sqlx::{PgPool, Execute, QueryBuilder};
+use sqlx::postgres::Postgres;
 use uuid::Uuid;
 
 use crate::{
     error::ApiError,
-    models::subscriber::{Subscriber, CreateSubscriberDto, SubscriberStatus, PaginationDto},
+    models::subscriber::{Subscriber,  CreateSubscriberDto, SubscriberStatus, PaginationParams, SubscriberFilter, SubscriberResponse},
 };
-
+#[derive(Clone)]
 pub struct SubscriberRepository {
     pool: PgPool,
 }
@@ -20,7 +21,7 @@ impl SubscriberRepository {
             Subscriber,
             r#"
             INSERT INTO subscribers (email, name, attribs, status)
-            VALUES ($1, $2, $3, $4::subscriber_status)  -- Ajout du cast explicite
+            VALUES ($1, $2, $3, $4::subscriber_status) 
             RETURNING 
                 id, uuid, email, name, 
                 attribs,
@@ -128,90 +129,88 @@ impl SubscriberRepository {
         Ok(subscriber)
     }
 
-    pub async fn find_all(&self, params: &PaginationDto) -> Result<Option<Vec<Subscriber>>, ApiError> {
-        let base_query = r#"
-            SELECT 
-                id, 
-                uuid, 
-                email, 
-                name, 
-                attribs,
-                status::subscriber_status as "status",
-                created_at, 
-                updated_at
-            FROM subscribers"#;
-
-        let mut query = sqlx::QueryBuilder::new(base_query);
-
-        // Start WHERE clause if needed
-        let mut first_condition = true;
-
-        // Search query
-        if let Some(search) = &params.query {
-            if first_condition {
-                query.push(" WHERE ");
-                first_condition = false;
+    pub async fn find_all(
+        &self,
+        filter: Option<SubscriberFilter>,
+        pagination: Option<PaginationParams>,
+    ) -> Result<SubscriberResponse<Subscriber>, ApiError> {
+        let pagination = pagination.unwrap_or_default();
+        let offset = (pagination.page - 1) * pagination.per_page;
+    
+        // Préparer la liste des conditions et des paramètres dynamiques
+        let mut conditions = Vec::new();
+        let mut params = Vec::new();
+    
+        if let Some(filter) = filter {
+            if let Some(id) = filter.id {
+                conditions.push(format!("id = {}", id));
+                params.push(id.to_string());
             }
-            query.push(" (email ILIKE ");
-            let pattern = format!("%{}%", search);
-            query.push_bind(pattern.clone());
-            query.push(" OR name ILIKE ");
-            query.push_bind(pattern);
-            query.push(")");
-        }
-
-        // List ID filter
-        if let Some(list_ids) = &params.list_id {
-            if first_condition {
-                query.push(" WHERE ");
-                first_condition = false;
-            } else {
-                query.push(" AND ");
+            if let Some(uuid) = filter.uuid {
+                conditions.push(format!("uuid = {}", uuid));
+                params.push(uuid.to_string());
             }
-            query.push(" id = ANY(");
-            query.push_bind(list_ids);
-            query.push(")");
-        }
-
-        // Status filter
-        if let Some(status) = &params.subscriber_status {
-            if first_condition {
-                query.push(" WHERE ");
-            } else {
-                query.push(" AND ");
+            if let Some(email) = filter.email {
+                conditions.push(format!("email = {}", email));
+                params.push(email);
             }
-            query.push(" status = ");
-            query.push_bind(status);
+            if let Some(name) = filter.name {
+                conditions.push(format!("name = {}", name));
+                params.push(name);
+            }
+            if let Some(status) = filter.status {
+                conditions.push(format!("status = {}", status));
+                params.push(status.to_string());
+            }
         }
-
-        // Ordering
-        let order_by = match params.order_by.as_str() {
-            "name" | "status" | "created_at" | "updated_at" => &params.order_by,
-            _ => "created_at"
-        };
-        let order = match params.order.to_uppercase().as_str() {
-            "ASC" | "DESC" => params.order.to_uppercase(),
-            _ => "DESC".to_string()
-        };
-        query.push(&format!(" ORDER BY {} {}", order_by, order));
-
-        // Pagination
-        if params.per_page > 0 {
-            let offset = (params.page - 1) * params.per_page;
-            query.push(&format!(" LIMIT {} OFFSET {}", params.per_page, offset));
-        }
-
-        let built_query = query.build_query_as::<Subscriber>();
-        println!("Executing query: {}", built_query.sql());
-
-        let subscribers = built_query.fetch_all(&self.pool).await?;
-
-        if subscribers.is_empty() {
-            Ok(None)
+    
+        // Créer la clause WHERE uniquement si des conditions sont définies
+        let where_clause = if conditions.is_empty() {
+            String::new()
         } else {
-            Ok(Some(subscribers))
+            format!("WHERE {}", conditions.join(" AND "))
+        };
+    
+        // Construire la requête SQL
+        let query = format!(
+            "SELECT * FROM subscribers {} ORDER BY {} {} LIMIT 10 OFFSET 0",
+            where_clause,
+            pagination.sort_by.unwrap_or_else(|| "id".to_string()),
+            pagination.sort_order.unwrap_or_else(|| "ASC".to_string())
+        );
+    
+        // Construire la requête avec les paramètres
+        let mut query_builder = sqlx::query_as::<_, Subscriber>(&query);
+    
+        for param in params {
+            query_builder = query_builder.bind(param);
         }
+    
+        // Ajouter les paramètres de pagination
+        query_builder = query_builder
+            .bind(pagination.per_page as i64)
+            .bind(offset as i64);
+    
+        println!("{}", query_builder.sql());
+        // Exécuter la requête
+        let subscribers = query_builder
+            .fetch_all(&self.pool)
+            .await?;
+    
+        // Retourner les résultats
+        Ok(SubscriberResponse {
+            items: subscribers,
+            page: pagination.page,
+            per_page: pagination.per_page,
+        })
     }
+    
+    
+
+   
+
+
+    
 
     pub async fn update_by_id(&self, id: i32, subscriber: Subscriber) -> Result<Option<Subscriber>, ApiError> {
         let subscriber = sqlx::query_as!(
@@ -270,4 +269,6 @@ impl SubscriberRepository {
         .await?;
         Ok(subscriber)
     }
+
+  
 }

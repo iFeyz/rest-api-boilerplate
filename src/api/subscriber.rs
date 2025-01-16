@@ -1,6 +1,6 @@
 use actix_web::{web, HttpResponse, post, get , delete , put };
 use crate::{
-    models::subscriber::{Subscriber, CreateSubscriberDto, GetSubscriberDto , PaginationDto},
+    models::subscriber::{Subscriber, CreateSubscriberDto, GetSubscriberDto , PaginationParams, SubscriberFilter, SubscriberResponse},
     services::subscriber_service::SubscriberService,
     error::ApiError,
 };
@@ -42,14 +42,11 @@ pub async fn get_subscriber(
 #[get("")]
 pub async fn get_subscribers(
     service: web::Data<SubscriberService>,
-    pagination: web::Query<PaginationDto>
+    filter: web::Query<SubscriberFilter>,
+    pagination: web::Query<PaginationParams>
 ) -> Result<HttpResponse, ApiError> {
-    let subscribers = service.get_subscribers(pagination.into_inner()).await?;
-    if subscribers.is_none() {
-        Ok(HttpResponse::Ok().json(Vec::<Subscriber>::new()))
-    } else {
-        Ok(HttpResponse::Ok().json(subscribers.unwrap()))
-    }
+    let subscribers = service.get_subscribers(Some(filter.into_inner()), Some(pagination.into_inner())).await?;
+    Ok(HttpResponse::Ok().json(subscribers))
 }
 
 #[delete("/{id_or_email}")]

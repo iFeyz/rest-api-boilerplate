@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use crate::{
     error::ApiError,
-    models::subscriber::{Subscriber, CreateSubscriberDto, PaginationDto},
+    models::subscriber::{Subscriber, CreateSubscriberDto, PaginationParams, SubscriberFilter, SubscriberResponse},
     repositories::subscriber_repository::SubscriberRepository
 };
 
@@ -41,9 +41,9 @@ impl SubscriberService {
             self.repository.delete_by_email(&id_or_email).await
         }
     }
-    pub async fn get_subscribers(&self, params: PaginationDto) -> Result<Option<Vec<Subscriber>>, ApiError> {
-        println!("Getting subscribers with params: {:?}", params);
-        self.repository.find_all(&params).await
+    pub async fn get_subscribers(&self, filter: Option<SubscriberFilter> , pagination: Option<PaginationParams>) -> Result<SubscriberResponse<Subscriber>, ApiError> {
+        println!("Getting subscribers with params: {:?}", filter);
+        self.repository.find_all(filter, pagination).await
     }
 
     pub async fn update_subscriber(&self, id_or_email: String, subscriber: Subscriber) -> Result<Option<Subscriber>, ApiError> {

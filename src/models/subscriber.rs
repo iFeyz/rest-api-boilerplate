@@ -13,20 +13,62 @@ pub enum SubscriberStatus {
     Blocklisted,
 }
 
-impl ToString for SubscriberStatus {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Enabled => "enabled".to_string(),
-            Self::Disabled => "disabled".to_string(),
-            Self::Blocklisted => "blocklisted".to_string(),
+impl fmt::Display for SubscriberStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let status_str = match self {
+            SubscriberStatus::Enabled => "enabled",
+            SubscriberStatus::Disabled => "disabled",
+            SubscriberStatus::Blocklisted => "blocklisted",
+        };
+        write!(f, "{}", status_str)
+    }
+}
+
+
+
+#[derive(Debug, Serialize, Deserialize )]
+// Make pagination params optional page & per_page
+pub struct PaginationParams {
+    pub page: i64,
+    pub per_page: i64,
+    pub sort_by: Option<String>,
+    pub sort_order: Option<String>,
+}
+// Make pagination params optional page & per_page
+impl Default for PaginationParams {
+    fn default() -> Self {
+        Self {
+            page: 1,
+            per_page: 10,
+            sort_by: Some("id".to_string()),
+            sort_order: Some("ASC".to_string()),
         }
     }
 }
-impl Default for SubscriberStatus {
-    fn default() -> Self {
-        Self::Enabled
-    }
-    
+
+#[derive(Debug, Serialize, Deserialize , Default)]
+pub struct SubscriberFilter {
+    pub id: Option<i32>,
+    pub uuid: Option<Uuid>,
+    pub email: Option<String>,
+    pub name: Option<String>,
+    pub attribs: Option<JsonValue>,
+    pub status: Option<SubscriberStatus>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug , Serialize , Deserialize)]
+pub struct SubscriberParams {
+    pub pagination: PaginationParams,
+    pub filter: SubscriberFilter,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SubscriberResponse<T> {
+    pub items: Vec<T>,
+    pub page: i64,
+    pub per_page: i64,
 }
 
 #[derive(Debug, Deserialize)]
