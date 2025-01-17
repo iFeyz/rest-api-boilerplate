@@ -29,8 +29,8 @@ impl fmt::Display for SubscriberStatus {
 #[derive(Debug, Serialize, Deserialize )]
 // Make pagination params optional page & per_page
 pub struct PaginationParams {
-    pub page: i64,
-    pub per_page: i64,
+    pub page: Option<i64>,
+    pub per_page: Option<i64>,
     pub sort_by: Option<String>,
     pub sort_order: Option<String>,
 }
@@ -38,8 +38,8 @@ pub struct PaginationParams {
 impl Default for PaginationParams {
     fn default() -> Self {
         Self {
-            page: 1,
-            per_page: 10,
+            page: Some(1),
+            per_page: Some(10),
             sort_by: Some("id".to_string()),
             sort_order: Some("ASC".to_string()),
         }

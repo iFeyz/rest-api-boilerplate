@@ -135,7 +135,7 @@ impl SubscriberRepository {
         pagination: Option<PaginationParams>,
     ) -> Result<SubscriberResponse<Subscriber>, ApiError> {
         let pagination = pagination.unwrap_or_default();
-        let offset = (pagination.page - 1) * pagination.per_page;
+        let offset = (pagination.page.unwrap_or_else(|| 1) - 1) * pagination.per_page.unwrap_or_else(|| 10);
     
         // Préparer la liste des conditions et des paramètres dynamiques
         let mut conditions = Vec::new();
@@ -173,10 +173,12 @@ impl SubscriberRepository {
     
         // Construire la requête SQL
         let query = format!(
-            "SELECT * FROM subscribers {} ORDER BY {} {} LIMIT 10 OFFSET 0",
+            "SELECT * FROM subscribers {} ORDER BY {} {} LIMIT {} OFFSET {}",
             where_clause,
             pagination.sort_by.unwrap_or_else(|| "id".to_string()),
-            pagination.sort_order.unwrap_or_else(|| "ASC".to_string())
+            pagination.sort_order.unwrap_or_else(|| "ASC".to_string()),
+            pagination.per_page.unwrap_or_else(|| 10),
+            offset
         );
     
         // Construire la requête avec les paramètres
@@ -188,7 +190,7 @@ impl SubscriberRepository {
     
         // Ajouter les paramètres de pagination
         query_builder = query_builder
-            .bind(pagination.per_page as i64)
+            .bind(pagination.per_page.unwrap_or_else(|| 10) as i64)
             .bind(offset as i64);
     
         println!("{}", query_builder.sql());
@@ -200,8 +202,8 @@ impl SubscriberRepository {
         // Retourner les résultats
         Ok(SubscriberResponse {
             items: subscribers,
-            page: pagination.page,
-            per_page: pagination.per_page,
+            page: pagination.page.unwrap_or_else(|| 1),
+            per_page: pagination.per_page.unwrap_or_else(|| 10),
         })
     }
     
