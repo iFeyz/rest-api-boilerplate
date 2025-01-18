@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 
 
 use crate::{
-    models::campaign::{Campaign,  CampaignStatus, CampaignType, CreateCampaignDto, DeleteCampaignDto, PaginationDto, UpdateCampaignDto},
+    models::campaign::{Campaign,  CampaignStatus, CampaignType, CreateCampaignDto, DeleteCampaignDto, PaginationParams, CampaignFilter, UpdateCampaignDto , CampaignResponse},
     error::ApiError,
 };
 
@@ -95,103 +95,136 @@ impl CampaignRepository {
     
         Ok(campaign)
     }
-pub async fn find_all(&self, dto: PaginationDto) -> Result<Option<Vec<Campaign>>, ApiError> {
-    let mut query = String::from(
-        r#"
-        SELECT 
-            id, uuid, 
-            name, 
-            subject, 
-            from_email, 
-            status::campaign_status as "status",
-            campaign_type::campaign_type as "campaign_type",
-            tags,
-            messenger,
-            headers,
-            to_send,
-            sent,
-            max_subscriber_id,
-            last_subscriber_id,
-            archive,
-            archive_slug,
-            archive_template_id,
-            archive_meta,
-            started_at,
-            created_at,
-            updated_at,
-            sequence_start_date,
-            sequence_end_date
-        FROM campaigns
-        "#
-    );
+pub async fn find_all(&self, filter: Option<CampaignFilter>, pagination: Option<PaginationParams>) -> Result<CampaignResponse<Campaign>, ApiError> {
+    let pagination = pagination.unwrap_or_default();
+    let offset = (pagination.page.unwrap_or_else(|| 1) - 1) * pagination.per_page.unwrap_or_else(|| 10);
 
-    let mut conditions: Vec<String> = Vec::new();
-    let mut where_clause = String::new();
+    // Préparer la liste des conditions et des paramètres dynamiques
+    let mut conditions = Vec::new();
+    let mut date_conditions = Vec::new();
+    let mut params = Vec::new();
 
-    // Build WHERE conditions
-    if let Some(status) = &dto.status {
-        where_clause.push_str(" WHERE status::campaign_status = $1");
-    }
-
-    if let Some(campaign_type) = &dto.campaign_type {
-        if where_clause.is_empty() {
-            where_clause.push_str(" WHERE campaign_type::campaign_type = $1");
-        } else {
-            where_clause.push_str(" AND campaign_type::campaign_type = $2");
+    if let Some(filter) = filter {
+        if let Some(id) = filter.id {
+            conditions.push(format!("id = {}", id));
+            params.push(id.to_string());
         }
-    }
 
-    if let Some(messenger) = &dto.messenger {
-        if where_clause.is_empty() {
-            where_clause.push_str(" WHERE messenger = $1");
-        } else if where_clause.contains("$2") {
-            where_clause.push_str(" AND messenger = $3");
-        } else {
-            where_clause.push_str(" AND messenger = $2");
+        if let Some(uuid) = filter.uuid {
+            conditions.push(format!("uuid = {}", uuid));
+            params.push(uuid.to_string());
         }
-    }
 
-    query.push_str(&where_clause);
-
-    // Add ORDER BY
-    query.push_str(&format!(" ORDER BY {} {}", 
-        if ["name", "status", "created_at", "updated_at"].contains(&dto.order_by.as_str()) {
-            &dto.order_by
-        } else {
-            "created_at"
-        },
-        if ["ASC", "DESC"].contains(&dto.order.to_uppercase().as_str()) {
-            dto.order.to_uppercase()
-        } else {
-            "DESC".to_string()
+        if let Some(name) = filter.name {
+            conditions.push(format!("name = {}", name));
+            params.push(name);
         }
-    ));
+    // Adding for enums
+    //    if let Some(status) = filter.status {
+    //        conditions.push(format!("status = {}", status));
+    //        params.push(status.to_string());
+    //    }
 
-    // Add pagination
-    let offset = (dto.page - 1) * dto.per_page;
-    query.push_str(&format!(" LIMIT {} OFFSET {}", dto.per_page, offset));
+        if let Some(subject) = filter.subject {
+            conditions.push(format!("subject = {}", subject));
+            params.push(subject);
+        }
 
-    // Create and execute query with proper bindings
-    let mut db_query = sqlx::query_as::<_, Campaign>(&query);
+        if let Some(from_email) = filter.from_email {
+            conditions.push(format!("from_email = {}", from_email));
+            params.push(from_email);
+        }
 
-    // Bind parameters in correct order
-    if let Some(status) = &dto.status {
-        db_query = db_query.bind(status);
+       // if let Some(campaign_type) = filter.campaign_type {
+       //     conditions.push(format!("campaign_type = {}", campaign_type));
+       //     params.push(campaign_type.to_string());
+       // }
+
+       if let Some(tags) = filter.tags {
+        conditions.push(format!("tags = {}", tags));
+        params.push(tags);
+       }
+
+       if let Some(messenger) = filter.messenger {
+        conditions.push(format!("messenger = {}", messenger));
+        params.push(messenger);
+       }
+
+       if let Some(to_send) = filter.to_send {
+        conditions.push(format!("to_send = {}", to_send));
+        params.push(to_send.to_string());
+       }
+
+       if let Some(sent) = filter.sent {
+        conditions.push(format!("sent = {}", sent));
+        params.push(sent.to_string());
+       }
+
+       if let Some(max_subscriber_id) = filter.max_subscriber_id {
+        conditions.push(format!("max_subscriber_id = {}", max_subscriber_id));
+        params.push(max_subscriber_id.to_string());
+       }
+
+       if let Some(last_subscriber_id) = filter.last_subscriber_id {
+        conditions.push(format!("last_subscriber_id = {}", last_subscriber_id));
+        params.push(last_subscriber_id.to_string());
+       }
+
+       // Need adding data filter 
+       if let Some(started_at) = filter.started_at {
+        date_conditions.push(format!("started_at = {}", started_at));
+        params.push(started_at.to_rfc3339());
+       }
+
+
     }
-    if let Some(campaign_type) = &dto.campaign_type {
-        db_query = db_query.bind(campaign_type);
-    }
-    if let Some(messenger) = &dto.messenger {
-        db_query = db_query.bind(messenger);
-    }
+        // Adding other closes
 
-    let campaigns = db_query.fetch_all(&self.pool).await?;
+        let where_clause = if conditions.is_empty() {
+            String::new()
+        } else {
+            format!("WHERE {}", conditions.join(" AND "))
+        };
+        // Adding date filter
+        let where_over_clause = if date_conditions.is_empty() {
+            String::new()
+        } else {
+            format!("WHERE {} < created_at", date_conditions.join(" AND "))
+        };
 
-    if campaigns.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(campaigns))
-    }
+        // Construire la requete SQL
+        let query = format!(
+            "SELECT * FROM campaigns {} {} ORDER BY {} {} LIMIT {} OFFSET {}", 
+            where_clause,
+            where_over_clause,
+            pagination.sort_by.unwrap_or_else(|| "id".to_string()),
+            pagination.sort_order.unwrap_or_else(|| "ASC".to_string()),
+            pagination.per_page.unwrap_or_else(|| 10),
+            offset
+        );
+
+        let mut query_builder = sqlx::query_as::<_, Campaign>(&query);
+
+        for param in params {
+            query_builder = query_builder.bind(param);
+        }
+
+        query_builder = query_builder
+            .bind(pagination.per_page.unwrap_or_else(|| 10) as i64)
+            .bind(offset as i64);
+
+       
+
+        let campaigns = query_builder
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(CampaignResponse {
+            items: campaigns,
+            page: pagination.page.unwrap_or_else(|| 1),
+            per_page: pagination.per_page.unwrap_or_else(|| 10),
+        })
+    
 }
 
     pub async fn find_by_id(&self, id: i32) -> Result<Option<Campaign>, ApiError> {

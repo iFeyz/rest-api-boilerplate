@@ -1,6 +1,6 @@
 use actix_web::{web, HttpResponse, post, get, delete, put};
 use crate::{
-    models::campaign::{Campaign, CreateCampaignDto, PaginationDto, DeleteCampaignDto, UpdateCampaignDto},
+    models::campaign::{Campaign, CreateCampaignDto, DeleteCampaignDto, UpdateCampaignDto, CampaignParams , PaginationParams , CampaignFilter},
     services::campaign_service::CampaignService,
     error::ApiError,
 };
@@ -35,14 +35,11 @@ pub async fn get_campaign(
 #[get("")]
 pub async fn get_campaigns(
     service: web::Data<CampaignService>,
-    pagination: web::Query<PaginationDto>
+    filter: web::Query<CampaignFilter>,
+    pagination: web::Query<PaginationParams>
 ) -> Result<HttpResponse, ApiError> {
-    let campaigns = service.get_campaigns(pagination.into_inner()).await?;
-    if campaigns.is_none() {
-        Ok(HttpResponse::Ok().json(Vec::<Campaign>::new()))
-    } else {
-        Ok(HttpResponse::Ok().json(campaigns.unwrap()))
-    }
+    let campaigns = service.get_campaigns(Some(filter.into_inner()), Some(pagination.into_inner())).await?;
+    Ok(HttpResponse::Ok().json(campaigns))
 }
 
 #[put("/{id}")]

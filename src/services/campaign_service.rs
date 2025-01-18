@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use crate::{
     error::ApiError,
-    models::campaign::{Campaign, CreateCampaignDto, DeleteCampaignDto, PaginationDto, UpdateCampaignDto},
+    models::campaign::{Campaign, CreateCampaignDto, DeleteCampaignDto,  CampaignResponse, PaginationParams, CampaignFilter, UpdateCampaignDto},
     repositories::campaign_repository::CampaignRepository
 };
 
@@ -26,9 +26,9 @@ impl CampaignService {
         self.repository.create(dto).await
     }
 
-    pub async fn get_campaigns(&self, dto: PaginationDto) -> Result<Option<Vec<Campaign>>, ApiError> {
-        println!("Getting campaigns: {:?}", dto);
-        self.repository.find_all(dto).await
+    pub async fn get_campaigns(&self, filter: Option<CampaignFilter>, pagination: Option<PaginationParams>) -> Result<CampaignResponse<Campaign>, ApiError> {
+        println!("Getting campaigns: {:?}", filter);
+        self.repository.find_all(filter, pagination).await
     }
 
     pub async fn update_campaign(&self, dto: UpdateCampaignDto) -> Result<Campaign, ApiError> {

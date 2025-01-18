@@ -135,56 +135,56 @@ pub struct DeleteCampaignDto {
     pub uuid: Option<Uuid>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PaginationParams {
+    pub page: Option<i64>,
+    pub per_page: Option<i64>,
+    pub sort_by: Option<String>,
+    pub sort_order: Option<String>,
+}
+
+impl Default for PaginationParams {
+    fn default() -> Self {
+        Self {
+            page: Some(1),
+            per_page: Some(10),
+            sort_by: Some("id".to_string()),
+            sort_order: Some("ASC".to_string()),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize , Default)]
+pub struct CampaignFilter {
+    pub id: Option<i32>,
+    pub uuid: Option<Uuid>,
+    pub name: Option<String>,
+    pub subject: Option<String>,
+    pub from_email: Option<String>,
+    pub status: Option<CampaignStatus>,
+    pub campaign_type: Option<CampaignType>,
+    pub tags: Option<String>,
+    pub messenger: Option<String>,
+    pub headers: Option<JsonValue>,
+    pub to_send: Option<i32>,
+    pub sent: Option<i32>,
+    pub max_subscriber_id: Option<i32>,
+    pub last_subscriber_id: Option<i32>,
+    pub archive: Option<bool>,
+    pub archive_slug: Option<String>,
+    pub archive_template_id: Option<i32>,
+    pub archive_meta: Option<JsonValue>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+    pub sequence_start_date: Option<DateTime<Utc>>,
+    pub sequence_end_date: Option<DateTime<Utc>>,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PaginationDto {
-    #[serde(default)]
-    pub query: Option<String>,
-    #[serde(default)]
-    pub id: Option<Vec<i32>>,
-    #[serde(default)]
-    pub status: Option<CampaignStatus>,
-    #[serde(default)]
-    pub campaign_type: Option<CampaignType>,
-    #[serde(default)]
-    pub tags: Option<Vec<String>>,
-    #[serde(default)]
-    pub messenger: Option<String>,
-    #[serde(default)]
-    pub sequence_start_date: Option<DateTime<Utc>>,
-    #[serde(default)]
-    pub sequence_end_date: Option<DateTime<Utc>>,
-
-    #[serde(rename = "order_by")]
-    #[serde(default = "default_order_by")]
-    pub order_by: String,
-    
-    #[serde(default = "default_order")]
-    pub order: String,
-    
-    #[serde(default = "default_page")]
-    pub page: i32,
-    
-    #[serde(rename = "per_page")]
-    #[serde(default = "default_per_page")]
-    pub per_page: i32,    
-
-}
-
-fn default_order_by() -> String {
-    "created_at".to_string()
-}
-
-fn default_order() -> String {
-    "DESC".to_string()
-}
-
-fn default_page() -> i32 {
-    1
-}
-
-fn default_per_page() -> i32 {
-    10
+pub struct CampaignParams {
+    pub pagination: PaginationParams,
+    pub filter: CampaignFilter,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -214,3 +214,10 @@ pub struct UpdateCampaignDto {
     pub sequence_start_date: Option<DateTime<Utc>>,
     pub sequence_end_date: Option<DateTime<Utc>>,
 }   
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CampaignResponse<T> {
+    pub items: Vec<T>,
+    pub page: i64,
+    pub per_page: i64,
+}
