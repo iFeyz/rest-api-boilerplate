@@ -1,5 +1,5 @@
 use crate::{
-    models::sequence_emails::{SequenceEmail, CreateSequenceEmailDto, UpdateSequenceEmailDto, DeleteSequenceEmailDto, PaginationDto},
+    models::sequence_email::{SequenceEmail, CreateSequenceEmailDto, UpdateSequenceEmailDto, PaginationDto},
     repositories::sequence_email_repository::SequenceEmailRepository,
     error::ApiError,
 };
@@ -29,4 +29,4 @@ impl SequenceEmailService {
     pub async fn delete_sequence_email(&self, id: i32) -> Result<Option<()>, ApiError> {
         self.repository.delete(id).await
     }
-}
+} 

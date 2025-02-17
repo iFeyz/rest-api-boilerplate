@@ -1,7 +1,7 @@
 use actix_web::{web, HttpResponse, post, get, delete, put};
 use crate::{
-    models::sequence_emails::{SequenceEmail, CreateSequenceEmailDto, UpdateSequenceEmailDto, DeleteSequenceEmailDto, PaginationDto},
-    services::sequence_emails_service::SequenceEmailService,
+    models::sequence_email::{SequenceEmail, CreateSequenceEmailDto, UpdateSequenceEmailDto, PaginationDto},
+    services::sequence_email_service::SequenceEmailService,
     error::ApiError,
 };
 
@@ -22,20 +22,21 @@ pub async fn create_sequence_email(
     Ok(HttpResponse::Created().json(sequence_email))
 }
 
-
 #[get("")]
 pub async fn get_sequence_emails(
     service: web::Data<SequenceEmailService>,
     query: web::Query<PaginationDto>
 ) -> Result<HttpResponse, ApiError> {
-    let sequence_emails = service.find_all(query.into_inner()).await?;
+    let pagination = query.into_inner();
+    tracing::debug!("Pagination params: {:?}", pagination);
+    
+    let sequence_emails = service.find_all(pagination).await?;
     if sequence_emails.is_empty() {
         Ok(HttpResponse::Ok().json(Vec::<SequenceEmail>::new()))
     } else {
         Ok(HttpResponse::Ok().json(sequence_emails))
     }
 }
-
 
 #[delete("/{id}")]
 pub async fn delete_sequence_email(

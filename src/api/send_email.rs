@@ -1,197 +1,133 @@
-use actix_web::{web, HttpResponse, post};
-use chrono::Utc;
-use crate::{
-    email_service::models::{EmailRequest, EmailResponse},
-    services::{send_email_service::SendEmailService, campaign_service::CampaignService},
-    error::ApiError,
-    models::campaign::{UpdateCampaignDto, CampaignStatus},
-    repositories::campaign_repository::CampaignRepository,
+use actix_web::{web, HttpResponse};
+use crate::email_service::{
+    EmailService,
+    models::{EmailRequest, BulkEmailRequest, EmailResponse, ListEmailRequest, BulkEmailStats, CampaignEmailRequest},
 };
-use lettre::SmtpTransport;
-use tracing::{info, error};
-use serde::{Deserialize, Serialize};
-use tokio::time::{sleep, Duration};
-use std::time::Instant;
 use sqlx::PgPool;
-use serde_json::json;
+use chrono::Utc;
 
-const MAX_RETRIES: u32 = 3;
-const RETRY_DELAY_MS: u64 = 1000;
-const RATE_LIMIT_DELAY_MS: u64 = 100;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct EmailRequestDto {
-    pub to: String,
-    pub subject: String,
-    pub content: String,
-    pub campaign_id: String,
-    pub metadata: serde_json::Value,
+pub fn config(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::scope("/email")
+            .route("/send", web::post().to(send_email))
+            .route("/send-bulk", web::post().to(send_bulk_emails))
+            .route("/send-to-lists", web::post().to(send_to_lists))
+            .route("/send-to-lists-campaign", web::post().to(send_to_lists_campaign))
+    );
 }
 
-#[derive(Debug, Serialize)]
-pub struct BulkEmailResponse {
-    pub successes: Vec<EmailResponse>,
-    pub failures: Vec<String>,
-    pub total: usize,
-    pub success_count: usize,
-    pub duration_secs: f64,
-}
-
-pub fn config() -> actix_web::Scope {
-    web::scope("/api/send_email")
-        .service(send_email)
-        .service(send_bulk_email)
-}
-
-async fn send_with_retry(
-    service: &web::Data<SendEmailService<SmtpTransport>>,
-    request: EmailRequest,
-    retries: u32
-) -> Result<EmailResponse, ApiError> {
-    let mut attempt = 0;
-
-    while attempt < retries {
-        match service.send_email(request.clone()).await {
-            Ok(response) => return Ok(response),
-            Err(e) => {
-                attempt += 1;
-                error!("Attempt {}/{} failed for {}: {}", attempt, retries, request.to, e);
-                if attempt < retries {
-                    sleep(Duration::from_millis(RETRY_DELAY_MS)).await;
-                } else {
-                    return Err(e.into());
-                }
-            }
-        }
+async fn send_email(
+    email_service: web::Data<EmailService>,
+    request: web::Json<EmailRequest>,
+) -> HttpResponse {
+    match email_service.send_email(&request.to, &request.subject, &request.body).await {
+        Ok(_) => HttpResponse::Ok().json(EmailResponse {
+            message: "Email sent successfully".to_string(),
+            success: true,
+        }),
+        Err(e) => HttpResponse::InternalServerError().json(EmailResponse {
+            message: format!("Failed to send email: {}", e),
+            success: false,
+        }),
     }
-
-    unreachable!()
 }
 
-#[post("")]
-pub async fn send_email(
-    service: web::Data<SendEmailService<SmtpTransport>>,
-    email: web::Json<EmailRequestDto>
-) -> Result<HttpResponse, ApiError> {
-    info!("Received email request to: {}", email.to);
+async fn send_bulk_emails(
+    email_service: web::Data<EmailService>,
+    request: web::Json<BulkEmailRequest>,
+) -> HttpResponse {
+    let emails = request.emails.iter().map(|email| {
+        (
+            email.to.clone(),
+            email.subject.clone(),
+            email.body.clone(),
+        )
+    }).collect();
+
+    let results = email_service.send_bulk_emails(emails).await;
     
-    let request = EmailRequest {
-        to: email.to.clone(),
-        subject: email.subject.clone(),
-        content: email.content.clone(),
-        metadata: Default::default(),
-    };
-    
-    let response = send_with_retry(&service, request, MAX_RETRIES).await?;
-    info!("Email sent successfully");
-    Ok(HttpResponse::Ok().json(response))
+    let failures: Vec<_> = results.iter()
+        .enumerate()
+        .filter_map(|(i, result)| {
+            result.as_ref().err().map(|e| (i, e.to_string()))
+        })
+        .collect();
+
+    if failures.is_empty() {
+        HttpResponse::Ok().json(EmailResponse {
+            message: "All emails sent successfully".to_string(),
+            success: true,
+        })
+    } else {
+        HttpResponse::BadRequest().json(EmailResponse {
+            message: format!("Some emails failed to send: {:?}", failures),
+            success: false,
+        })
+    }
 }
 
-#[post("/bulk")]
-pub async fn send_bulk_email(
-    service: web::Data<SendEmailService<SmtpTransport>>,
+async fn send_to_lists(
+    email_service: web::Data<EmailService>,
     pool: web::Data<PgPool>,
-    emails: web::Json<Vec<EmailRequestDto>>
-) -> Result<HttpResponse, ApiError> {
-    let start_time = Instant::now();
-    let total = emails.len() as i32;
-    info!("Received bulk email request for {} recipients", total);
-    
-    let mut successes = Vec::new();
-    let mut failures = Vec::new();
-    let mut sent_count = 0i32;
-
-    // Get campaign ID from first email and parse it to i32
-    let campaign_id = emails.first()
-        .map(|e| e.campaign_id.parse::<i32>())
-        .transpose()
-        .map_err(|_| ApiError::BadRequest("Invalid campaign_id format".into()))?;
-
-    let campaign_repository = CampaignRepository::new(pool.get_ref().clone());
-    let campaign_service = CampaignService::new(campaign_repository);
-
-    if let Some(campaign_id) = campaign_id {
-        // Set initial campaign status
-        let update_dto = UpdateCampaignDto {
-            id: Some(campaign_id),
-            status: Some(CampaignStatus::Running),
-            started_at: Some(Utc::now()),
-            sent: Some(0),
-            to_send: Some(total),
-            ..Default::default()
-        };
-        campaign_service.update_campaign(update_dto).await?;
+    request: web::Json<ListEmailRequest>,
+) -> HttpResponse {
+    match email_service.send_emails_to_lists(
+        &pool,
+        &request.list_ids,
+        &request.subject,
+        &request.body,
+    ).await {
+        Ok(stats) => HttpResponse::Ok().json(stats),
+        Err(e) => HttpResponse::InternalServerError().json(EmailResponse {
+            message: format!("Failed to send emails: {}", e),
+            success: false,
+        }),
     }
-
-    for (index, email) in emails.iter().enumerate() {
-        let request = EmailRequest {
-            to: email.to.clone(),
-            subject: email.subject.clone(),
-            content: email.content.clone(),
-            metadata: Default::default(),
-        };
-
-        info!("Sending email {}/{} to: {}", index + 1, total, request.to);
-        match send_with_retry(&service, request, MAX_RETRIES).await {
-            Ok(response) => {
-                info!("Successfully sent email to: {}", email.to);
-                successes.push(response);
-                sent_count += 1;
-
-                if let Some(campaign_id) = campaign_id {
-                    let update_dto = UpdateCampaignDto {
-                        id: Some(campaign_id),
-                        sent: Some(sent_count),
-                        updated_at: Some(Utc::now()),
-                        ..Default::default()
-                    };
-                    campaign_service.update_campaign(update_dto).await?;
-                }
-            },
-            Err(e) => {
-                error!("Failed to send email to {} after {} retries: {}", email.to, MAX_RETRIES, e);
-                failures.push(format!("{}: {}", email.to, e));
-
-                if let Some(campaign_id) = campaign_id {
-                    let update_dto = UpdateCampaignDto {
-                        id: Some(campaign_id),
-                        status: Some(CampaignStatus::Paused),
-                        sent: Some(sent_count),
-                        updated_at: Some(Utc::now()),
-                        ..Default::default()
-                    };
-                    campaign_service.update_campaign(update_dto).await?;
-                }
-            }
-        }
-
-        // Rate limiting delay between emails
-        if (index as i32) < total - 1 {
-            sleep(Duration::from_millis(RATE_LIMIT_DELAY_MS)).await;
-        }
-    }
-
-    let duration_secs = start_time.elapsed().as_secs_f64();
-
-    if let Some(campaign_id) = campaign_id {
-        let update_dto = UpdateCampaignDto {
-            id: Some(campaign_id),
-            status: Some(if sent_count == total { CampaignStatus::Finished } else { CampaignStatus::Paused }),
-            sent: Some(sent_count),
-            updated_at: Some(Utc::now()),
-            ..Default::default()
-        };
-        campaign_service.update_campaign(update_dto).await?;
-    }
-
-    info!("Bulk email send completed. Success: {}/{}. Duration: {:.2}s", 
-          sent_count, total, duration_secs);
-
-    Ok(HttpResponse::Ok().json(BulkEmailResponse {
-        successes,
-        failures,
-        total: total as usize,
-        success_count: sent_count as usize,
-        duration_secs,
-    }))
 }
+
+async fn send_to_lists_campaign(
+    email_service: web::Data<EmailService>,
+    pool: web::Data<PgPool>,
+    request: web::Json<CampaignEmailRequest>,
+) -> HttpResponse {
+    if let Some(schedule_at) = request.schedule_at {
+        if schedule_at <= Utc::now() {
+            return HttpResponse::BadRequest().json(EmailResponse {
+                message: "Schedule time must be in the future".to_string(),
+                success: false,
+            });
+        }
+
+        // Schedule the campaign
+        match email_service.schedule_campaign_emails(
+            &pool,
+            request.campaign_id,
+            &request.list_ids,
+            request.template_id,
+            schedule_at,
+        ).await {
+            Ok(_) => HttpResponse::Ok().json(EmailResponse {
+                message: format!("Campaign scheduled for {}", schedule_at),
+                success: true,
+            }),
+            Err(e) => HttpResponse::InternalServerError().json(EmailResponse {
+                message: format!("Failed to schedule campaign: {}", e),
+                success: false,
+            }),
+        }
+    } else {
+        // Send immediately
+        match email_service.send_campaign_emails(
+            &pool,
+            request.campaign_id,
+            &request.list_ids,
+            request.template_id,
+        ).await {
+            Ok(stats) => HttpResponse::Ok().json(stats),
+            Err(e) => HttpResponse::InternalServerError().json(EmailResponse {
+                message: format!("Failed to send campaign emails: {}", e),
+                success: false,
+            }),
+        }
+    }
+} 

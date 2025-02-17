@@ -2,10 +2,11 @@ use sqlx::PgPool;
 use serde_json::Value as JsonValue;
 use chrono::{DateTime, Utc};
 use crate::{
-    models::sequence_emails::{SequenceEmail, CreateSequenceEmailDto, UpdateSequenceEmailDto, PaginationDto},
+    models::sequence_email::{SequenceEmail, CreateSequenceEmailDto, UpdateSequenceEmailDto, PaginationDto},
     error::ApiError,
 };
 
+#[derive(Clone)]
 pub struct SequenceEmailRepository {
     pool: PgPool,
 }
@@ -100,12 +101,12 @@ impl SequenceEmailRepository {
             LIMIT $2 OFFSET $3
             "#,
             dto.campaign_id,
-            dto.per_page as i64,
-            offset as i64,
-         
+            dto.per_page,
+            offset
         )
         .fetch_all(&self.pool)
         .await?;
+
         Ok(sequence_emails)
     }
     
@@ -160,8 +161,72 @@ impl SequenceEmailRepository {
         )
         .execute(&self.pool)
         .await?;
+
         Ok(if result.rows_affected() > 0 { Some(()) } else { None })
     }
-}
 
+    pub async fn get_active_sequence_email(&self, campaign_id: i32) -> Result<Option<SequenceEmail>, ApiError> {
+        let sequence_email = sqlx::query_as!(
+            SequenceEmail,
+            r#"
+            SELECT 
+                id as "id!: i32",
+                campaign_id as "campaign_id!: i32",
+                position as "position!: i32",
+                subject as "subject!: String",
+                body as "body!: String",
+                template_id as "template_id?: i32",
+                content_type as "content_type!: _",
+                metadata as "metadata!: JsonValue",
+                is_active as "is_active!: bool",
+                send_at as "send_at?: DateTime<Utc>",
+                created_at as "created_at!: DateTime<Utc>",
+                updated_at as "updated_at!: DateTime<Utc>"
+            FROM sequence_emails
+            WHERE campaign_id = $1
+            AND is_active = true
+            AND (send_at IS NULL OR send_at <= NOW())
+            ORDER BY position ASC
+            LIMIT 1
+            "#,
+            campaign_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
 
+        Ok(sequence_email)
+    }
+
+    pub async fn get_pending_sequence_emails(&self) -> Result<Vec<SequenceEmail>, ApiError> {
+        let sequence_emails = sqlx::query_as!(
+            SequenceEmail,
+            r#"
+            SELECT 
+                id as "id!: i32",
+                campaign_id as "campaign_id!: i32",
+                position as "position!: i32",
+                subject as "subject!: String",
+                body as "body!: String",
+                template_id as "template_id?: i32",
+                content_type as "content_type!: _",
+                metadata as "metadata!: JsonValue",
+                is_active as "is_active!: bool",
+                send_at as "send_at?: DateTime<Utc>",
+                created_at as "created_at!: DateTime<Utc>",
+                updated_at as "updated_at!: DateTime<Utc>"
+            FROM sequence_emails
+            WHERE is_active = true
+            AND send_at <= NOW()
+            AND NOT EXISTS (
+                SELECT 1 FROM email_views 
+                WHERE email_views.sequence_email_id = sequence_emails.id
+            )
+            ORDER BY campaign_id, position ASC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(sequence_emails)
+    }
+} 

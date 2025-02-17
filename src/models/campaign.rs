@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use sqlx::types::JsonValue;
 use std::fmt;
+use sqlx::Type;
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Campaign {
@@ -75,8 +76,14 @@ impl Default for CampaignType {
     }
 }
 
-
-
+#[derive(Debug, Serialize, Deserialize, Type, Clone, Copy, PartialEq)]
+#[sqlx(type_name = "content_type", rename_all = "lowercase")]
+pub enum ContentType {
+    Richtext,
+    Html,
+    Plain,
+    Markdown,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateCampaignDto {
@@ -125,8 +132,6 @@ pub struct CampaignDto {
     pub started_at: Option<DateTime<Utc>>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
-
-
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]

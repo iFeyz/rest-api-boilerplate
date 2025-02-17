@@ -3,7 +3,7 @@ use lettre::transport::smtp::Error as SmtpError;
 
 #[derive(Debug, Error)]
 pub enum EmailError {
-    #[error("Failed to send email: {0}")]
+    #[error("SMTP error: {0}")]
     SmtpError(#[from] SmtpError),
 
     #[error("Invalid email address: {0}")]
@@ -14,4 +14,7 @@ pub enum EmailError {
 
     #[error("Configuration error: {0}")]
     ConfigError(String),
+
+    #[error("Execution error: {0}")]
+    ExecutionError(String),
 }

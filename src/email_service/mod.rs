@@ -3,5 +3,5 @@ pub mod models;
 pub mod error;
 pub mod config;
 
-pub use service::EmailService;
-pub use models::EmailRequest;
+pub use self::service::EmailService;
+pub use self::models::EmailRequest;
