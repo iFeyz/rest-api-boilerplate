@@ -20,6 +20,8 @@ use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 use crate::email_service::EmailService;
 use crate::repositories::sequence_email_repository::SequenceEmailRepository;
 use crate::services::sequence_email_service::SequenceEmailService;
+use crate::error::ApiError;
+use crate::models::sequence_email::SequenceEmailStatus;
 
 use crate::{
     repositories::{
@@ -101,20 +103,31 @@ async fn setup_campaign_scheduler(
                             continue;
                         }
 
-                        // Send the sequence email
+                        // Mettre à jour le statut en 'sending'
+                        if let Err(e) = sequence_repo.update_status(email.id, SequenceEmailStatus::Sending).await {
+                            tracing::error!("Failed to update email status to sending: {}", e);
+                            continue;
+                        }
+
                         match email_service.send_emails_to_lists(
                             &pool,
                             &list_ids,
                             &email.subject,
                             &email.body,
+                            email.campaign_id,
+                            email.id,
                         ).await {
                             Ok(stats) => {
-                                // Deactivate the sequence email after successful sending
+                                // Mettre à jour le statut en 'sent' et désactiver
+                                if let Err(e) = sequence_repo.update_status(email.id, SequenceEmailStatus::Sent).await {
+                                    tracing::error!("Failed to update email status to sent: {}", e);
+                                }
+                                
+                                // Désactiver l'email
                                 match sqlx::query!(
                                     r#"
                                     UPDATE sequence_emails 
-                                    SET is_active = false,
-                                        updated_at = NOW()
+                                    SET is_active = false
                                     WHERE id = $1
                                     "#,
                                     email.id
@@ -122,7 +135,15 @@ async fn setup_campaign_scheduler(
                                 .execute(&**pool)
                                 .await {
                                     Ok(_) => {
-                                        // Update campaign stats
+                                        // Mettre à jour les statistiques de la campagne
+                                        let stats_json = match serde_json::to_value(&stats) {
+                                            Ok(json) => json,
+                                            Err(e) => {
+                                                tracing::error!("Failed to serialize stats: {}", e);
+                                                continue;
+                                            }
+                                        };
+
                                         match sqlx::query!(
                                             r#"
                                             UPDATE campaigns
@@ -130,57 +151,34 @@ async fn setup_campaign_scheduler(
                                                 archive_meta = jsonb_set(
                                                     COALESCE(archive_meta, '{}'::jsonb),
                                                     '{stats}',
-                                                    $2
+                                                    $2::jsonb
                                                 )
                                             WHERE id = $3
                                             "#,
                                             stats.successful_sends,
-                                            serde_json::to_value(&stats).unwrap_or(serde_json::Value::Null),
+                                            &stats_json,
                                             email.campaign_id
                                         )
                                         .execute(&**pool)
                                         .await {
-                                            Ok(_) => {
-                                                tracing::info!(
-                                                    "Successfully sent and deactivated sequence email {} for campaign {}: {} sent, {} failed",
-                                                    email.id,
-                                                    email.campaign_id,
-                                                    stats.successful_sends,
-                                                    stats.failed_sends
-                                                );
-                                            }
-                                            Err(e) => {
-                                                tracing::error!(
-                                                    "Failed to update campaign stats for campaign {}: {}",
-                                                    email.campaign_id,
-                                                    e
-                                                );
-                                            }
+                                            Ok(_) => tracing::info!("Campaign stats updated successfully"),
+                                            Err(e) => tracing::error!("Failed to update campaign stats: {}", e),
                                         }
                                     }
-                                    Err(e) => {
-                                        tracing::error!(
-                                            "Failed to deactivate sequence email {} after sending: {}",
-                                            email.id,
-                                            e
-                                        );
-                                    }
+                                    Err(e) => tracing::error!("Failed to deactivate sequence email: {}", e),
                                 }
                             }
                             Err(e) => {
-                                tracing::error!(
-                                    "Failed to send sequence email {} for campaign {}: {}",
-                                    email.id,
-                                    email.campaign_id,
-                                    e
-                                );
+                                tracing::error!("Failed to send emails: {}", e);
+                                // Mettre à jour le statut en 'failed'
+                                if let Err(e) = sequence_repo.update_status(email.id, SequenceEmailStatus::Failed).await {
+                                    tracing::error!("Failed to update email status to failed: {}", e);
+                                }
                             }
                         }
                     }
                 }
-                Err(e) => {
-                    tracing::error!("Failed to get pending sequence emails: {}", e);
-                }
+                Err(e) => tracing::error!("Failed to get pending sequence emails: {}", e),
             }
         })
     })?).await?;
@@ -224,27 +222,29 @@ async fn main() -> std::io::Result<()> {
     info!("Database migrations completed");
 
     // Create repositories with the unwrapped pool
+    let email_views_repository = EmailViewsRepository::new(pool.clone());
     let subscriber_repository = SubscriberRepository::new(pool.clone());
     let list_repository = ListsRepository::new(pool.clone());
     let template_repository = TemplateRepository::new(pool.clone());
     let subscriber_list_repository = SubscriberListRepository::new(pool.clone());
     let campaign_repository = CampaignRepository::new(pool.clone());
     let campaign_list_repository = CampaignListRepository::new(pool.clone());
-    let email_views_repository = EmailViewsRepository::new(pool.clone());
     let sequence_email_repository = SequenceEmailRepository::new(pool.clone());
 
     // Now wrap the pool for web usage
     let pool = web::Data::new(pool);
 
     // Create services and wrap repositories in web::Data
+    let email_views_service = EmailViewsService::new(email_views_repository.clone());
+    let email_views_service = web::Data::new(email_views_service);
+    let email_views_repository = web::Data::new(email_views_repository);
     let subscriber_service = web::Data::new(SubscriberService::new(subscriber_repository));
     let list_service = web::Data::new(ListService::new(list_repository));
     let template_service = web::Data::new(TemplateService::new(template_repository));
     let subscriber_list_service = web::Data::new(SubscriberListService::new(subscriber_list_repository));
     let campaign_service = web::Data::new(CampaignService::new(campaign_repository));
     let campaign_list_service = web::Data::new(CampaignListService::new(campaign_list_repository));
-    let email_views_service = web::Data::new(EmailViewsService::new(email_views_repository));
-    let sequence_email_repository = web::Data::new(sequence_email_repository);
+    let sequence_email_repository = web::Data::new(sequence_email_repository.clone());
     let sequence_email_service = web::Data::new(SequenceEmailService::new(sequence_email_repository.get_ref().clone()));
 
     // Setup other services
@@ -282,6 +282,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(pool.clone())
+            .app_data(email_views_service.clone())
             .app_data(subscriber_service.clone())
             .app_data(list_service.clone())
             .app_data(template_service.clone())
@@ -298,6 +299,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::campaign::config())
             .service(api::campaign_list::config())
             .service(api::sequence_email::config())
+            .service(api::email_views::config())
             .configure(api::send_email::config)
     })
     .bind(("127.0.0.1", 8080))?

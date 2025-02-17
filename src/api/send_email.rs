@@ -76,6 +76,8 @@ async fn send_to_lists(
         &request.list_ids,
         &request.subject,
         &request.body,
+        request.campaign_id,
+        request.sequence_email_id,
     ).await {
         Ok(stats) => HttpResponse::Ok().json(stats),
         Err(e) => HttpResponse::InternalServerError().json(EmailResponse {

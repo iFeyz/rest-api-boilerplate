@@ -1,9 +1,9 @@
-use actix_web::{HttpResponse , ResponseError};
+use actix_web::{HttpResponse, ResponseError};
 use thiserror::Error;
 use crate::email_service::error::EmailError;
 use serde_json;
 
-#[derive(Debug , Error)]
+#[derive(Debug, Error)]
 pub enum ApiError {
     #[error("Database error : {0}")]
     DatabaseError(#[from] sqlx::Error),

@@ -6,6 +6,9 @@
 DROP TYPE IF EXISTS subscriber_status CASCADE; 
 CREATE TYPE subscriber_status AS ENUM ('enabled', 'disabled', 'blocklisted');
 
+DROP TYPE IF EXISTS sequence_email_status CASCADE; 
+CREATE TYPE sequence_email_status AS ENUM ('draft', 'sending', 'sent', 'failed');
+
 DROP EXTENSION IF EXISTS "uuid-ossp"; 
 CREATE EXTENSION "uuid-ossp";
 
@@ -179,6 +182,7 @@ CREATE TABLE sequence_emails (
         body TEXT NOT NULL,
         template_id INTEGER REFERENCES templates(id),
         content_type content_type NOT NULL DEFAULT 'richtext',
+        status sequence_email_status NOT NULL DEFAULT 'draft',
         
         -- Heure de l'envoie --
         
@@ -244,48 +248,3 @@ CREATE INDEX idx_email_views_location ON email_views(country, city);
 -- Ensure no duplicate entries for the same subscriber_id, sequence_email_id, and campaign_id
 ALTER TABLE email_views
 ADD CONSTRAINT unique_subscriber_sequence_campaign UNIQUE (subscriber_id, sequence_email_id, campaign_id);
-
--- Fonction pour mettre à jour `to_send` en fonction des changements dans `sequence_emails`
-CREATE OR REPLACE FUNCTION update_campaign_to_send()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Si c'est une insertion
-    IF TG_OP = 'INSERT' THEN
-        UPDATE campaigns
-        SET to_send = to_send + (
-            SELECT COUNT(DISTINCT subscriber_id)
-            FROM subscriber_lists sl
-            JOIN campaign_lists cl ON sl.list_id = cl.list_id
-            WHERE cl.campaign_id = NEW.campaign_id
-              AND sl.status = 'confirmed'
-        )
-        WHERE id = NEW.campaign_id;
-
-    -- Si c'est une suppression
-    ELSIF TG_OP = 'DELETE' THEN
-        UPDATE campaigns
-        SET to_send = to_send - (
-            SELECT COUNT(DISTINCT subscriber_id)
-            FROM subscriber_lists sl
-            JOIN campaign_lists cl ON sl.list_id = cl.list_id
-            WHERE cl.campaign_id = OLD.campaign_id
-              AND sl.status = 'confirmed'
-        )
-        WHERE id = OLD.campaign_id;
-    END IF;
-
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger pour gérer les insertions
-CREATE TRIGGER trigger_update_campaign_to_send_insert
-AFTER INSERT ON sequence_emails
-FOR EACH ROW
-EXECUTE FUNCTION update_campaign_to_send();
-
--- Trigger pour gérer les suppressions
-CREATE TRIGGER trigger_update_campaign_to_send_delete
-AFTER DELETE ON sequence_emails
-FOR EACH ROW
-EXECUTE FUNCTION update_campaign_to_send();

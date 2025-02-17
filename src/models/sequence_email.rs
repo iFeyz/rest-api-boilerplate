@@ -5,6 +5,21 @@ use crate::models::campaign::ContentType;
 use serde_json::Value as JsonValue;
 use std::fmt;
 
+#[derive(Debug, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "sequence_email_status", rename_all = "lowercase")]
+pub enum SequenceEmailStatus {
+    Draft,
+    Sending,
+    Sent,
+    Failed,
+}
+
+impl Default for SequenceEmailStatus {
+    fn default() -> Self {
+        Self::Draft
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct SequenceEmail {
     pub id: i32,
@@ -17,6 +32,7 @@ pub struct SequenceEmail {
     pub metadata: JsonValue,
     pub is_active: bool,
     pub send_at: Option<DateTime<Utc>>,
+    pub status: SequenceEmailStatus,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -32,6 +48,25 @@ pub struct CreateSequenceEmailDto {
     pub metadata: JsonValue,
     pub is_active: bool,
     pub send_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub status: SequenceEmailStatus,
+}
+
+impl Default for CreateSequenceEmailDto {
+    fn default() -> Self {
+        Self {
+            status: SequenceEmailStatus::Draft,
+            campaign_id: 1,
+            position: 1,
+            subject: String::new(),
+            body: String::new(),
+            template_id: None,
+            content_type: ContentType::Html,
+            metadata: JsonValue::Null,
+            is_active: true,
+            send_at: None,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

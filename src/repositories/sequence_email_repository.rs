@@ -2,7 +2,13 @@ use sqlx::PgPool;
 use serde_json::Value as JsonValue;
 use chrono::{DateTime, Utc};
 use crate::{
-    models::sequence_email::{SequenceEmail, CreateSequenceEmailDto, UpdateSequenceEmailDto, PaginationDto},
+    models::sequence_email::{
+        SequenceEmail, 
+        CreateSequenceEmailDto, 
+        UpdateSequenceEmailDto, 
+        PaginationDto,
+        SequenceEmailStatus
+    },
     error::ApiError,
 };
 
@@ -30,6 +36,7 @@ impl SequenceEmailRepository {
                 metadata, 
                 is_active,
                 send_at,
+                status,
                 created_at,
                 updated_at
             )
@@ -43,6 +50,7 @@ impl SequenceEmailRepository {
                 $7, 
                 $8, 
                 $9, 
+                'draft'::sequence_email_status,
                 CURRENT_TIMESTAMP, 
                 CURRENT_TIMESTAMP
             )
@@ -54,6 +62,7 @@ impl SequenceEmailRepository {
                 body as "body!: String",
                 template_id as "template_id?: i32",
                 content_type as "content_type!: _",
+                status as "status!: _",
                 metadata as "metadata!: JsonValue",
                 is_active as "is_active!: bool",
                 send_at as "send_at?: DateTime<Utc>",
@@ -90,6 +99,7 @@ impl SequenceEmailRepository {
                 body as "body!: String",
                 template_id as "template_id?: i32",
                 content_type as "content_type!: _",
+                status as "status!: _",
                 metadata as "metadata!: JsonValue",
                 is_active as "is_active!: bool",
                 send_at as "send_at?: DateTime<Utc>",
@@ -133,6 +143,7 @@ impl SequenceEmailRepository {
                 body as "body!: String",
                 template_id as "template_id?: i32",
                 content_type as "content_type!: _",
+                status as "status!: _",
                 metadata as "metadata!: JsonValue",
                 is_active as "is_active!: bool",
                 send_at as "send_at?: DateTime<Utc>",
@@ -177,6 +188,7 @@ impl SequenceEmailRepository {
                 body as "body!: String",
                 template_id as "template_id?: i32",
                 content_type as "content_type!: _",
+                status as "status!: _",
                 metadata as "metadata!: JsonValue",
                 is_active as "is_active!: bool",
                 send_at as "send_at?: DateTime<Utc>",
@@ -209,6 +221,7 @@ impl SequenceEmailRepository {
                 body as "body!: String",
                 template_id as "template_id?: i32",
                 content_type as "content_type!: _",
+                status as "status!: _",
                 metadata as "metadata!: JsonValue",
                 is_active as "is_active!: bool",
                 send_at as "send_at?: DateTime<Utc>",
@@ -217,6 +230,7 @@ impl SequenceEmailRepository {
             FROM sequence_emails
             WHERE is_active = true
             AND send_at <= NOW()
+            AND status = 'draft'
             AND NOT EXISTS (
                 SELECT 1 FROM email_views 
                 WHERE email_views.sequence_email_id = sequence_emails.id
@@ -228,5 +242,23 @@ impl SequenceEmailRepository {
         .await?;
 
         Ok(sequence_emails)
+    }
+
+    pub async fn update_status(&self, id: i32, new_status: SequenceEmailStatus) -> Result<(), ApiError> {
+        sqlx::query!(
+            r#"
+            UPDATE sequence_emails 
+            SET status = $1::sequence_email_status,
+                updated_at = NOW()
+            WHERE id = $2
+            "#,
+            new_status as _,
+            id
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(ApiError::DatabaseError)?;
+
+        Ok(())
     }
 } 

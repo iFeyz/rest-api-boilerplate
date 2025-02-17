@@ -24,6 +24,8 @@ pub struct ListEmailRequest {
     pub list_ids: Vec<i32>,
     pub subject: String,
     pub body: String,
+    pub campaign_id: i32,
+    pub sequence_email_id: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

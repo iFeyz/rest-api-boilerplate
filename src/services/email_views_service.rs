@@ -8,11 +8,10 @@ use crate::{
     repositories::email_views_repository::EmailViewsRepository,
     error::ApiError
 };
-use actix_web::{HttpRequest, HttpResponse};
-use std::net::IpAddr;
-use maxminddb::geoip2;
-use std::str::FromStr;
-use tracing::{info, warn, error};
+use actix_web::HttpRequest;
+use maxminddb::{geoip2::City, Reader};
+use tracing::info;
+use serde_json;
 
 pub struct EmailViewsService {
     repository: EmailViewsRepository
@@ -32,102 +31,70 @@ impl EmailViewsService {
         &self,
         req: HttpRequest,
         path: (i32, i32, i32),
-        geoip_reader: &maxminddb::Reader<Vec<u8>>
+        geoip_reader: &Reader<Vec<u8>>,
     ) -> Result<EmailView, ApiError> {
-        fn get_geo_location(
-            subscriber_id: i32,
-            sequence_email_id: i32,
-            campaign_id: i32,
-            ip_address: String,
-            reader: &maxminddb::Reader<Vec<u8>>,
-            user_agent: &str
-        ) -> Option<CreateEmailViewDto> {
-            let ip = IpAddr::from_str(ip_address.as_str()).ok()?;
-            let city_info: geoip2::City = reader.lookup(ip).ok()?;
-    
-            Some(CreateEmailViewDto {
-                sequence_email_id,
-                subscriber_id,
-                campaign_id,
-                ip_address: Some(ip_address),
-                user_agent: Some(user_agent.to_string()),
-                country: Some(city_info
-                    .country
-                    .and_then(|country| country.names)
-                    .and_then(|names| names.get("en").cloned())
-                    .map(|name| name.to_string())
-                    .unwrap_or_else(|| "Unknown".to_string())),
-                city: Some(city_info
-                    .city
-                    .and_then(|city| city.names)
-                    .and_then(|names| names.get("en").cloned())
-                    .map(|name| name.to_string())
-                    .unwrap_or_else(|| "Unknown".to_string())),
-                region: Some(city_info
-                    .subdivisions
-                    .and_then(|subdivisions| subdivisions.get(0).cloned())
-                    .and_then(|subdivision| subdivision.names)
-                    .and_then(|names| names.get("en").cloned())
-                    .map(|name| name.to_string())
-                    .unwrap_or_else(|| "Unknown".to_string())),
-                latitude: Some(city_info
-                    .location.as_ref()
-                    .and_then(|location| location.latitude)
-                    .unwrap_or(0.0)
-                    .to_string()),
-                longitude: Some(city_info
-                    .location.as_ref()
-                    .and_then(|location| location.longitude)
-                    .unwrap_or(0.0)
-                    .to_string()),
-                metadata: None
-            })
-        }
-
         let (subscriber_id, sequence_email_id, campaign_id) = path;
         
-        // Gestion des erreurs pour User-Agent
-        let user_agent = req.headers()
+        // Get IP address from request
+        let ip_address = req
+            .connection_info()
+            .realip_remote_addr()
+            .map(|s| s.to_string());
+
+        // Get user agent from request
+        let user_agent = req
+            .headers()
             .get("User-Agent")
             .and_then(|h| h.to_str().ok())
-            .unwrap_or("Unknown");
+            .map(|s| s.to_string());
 
-        let ip_address = req.peer_addr()
-            .map(|addr| addr.ip().to_string())
-            .unwrap_or_else(|| "Unknown".to_string());
-
-        let geo_location = get_geo_location(
-            subscriber_id,
-            sequence_email_id,
-            campaign_id,
-            ip_address.clone(),
-            geoip_reader,
+        tracing::info!(
+            "Processing email view - IP: {:?}, UA: {:?}",
+            ip_address,
             user_agent
         );
 
-        match geo_location {
-            Some(location_dto) => {
-                info!("Creating email view with geolocation: {:?}", &location_dto);
-                self.repository.create(location_dto).await
-            }
-            None => {
-                // Fallback sans géolocalisation
-                warn!("Could not get geolocation, creating email view with basic info");
-                let basic_dto = CreateEmailViewDto {
-                    sequence_email_id,
-                    subscriber_id,
-                    campaign_id,
-                    ip_address: Some(ip_address),
-                    user_agent: Some(user_agent.to_string()),
-                    country: None,
-                    city: None,
-                    region: None,
-                    latitude: None,
-                    longitude: None,
-                    metadata: None,
-                };
-                self.repository.create(basic_dto).await
+        let mut location_info: Option<City> = None;
+        if let Some(ip) = ip_address.as_ref().and_then(|ip| ip.parse().ok()) {
+            if let Ok(city) = geoip_reader.lookup(ip) {
+                location_info = Some(city);
+                tracing::info!("Found location info: {:?}", location_info);
             }
         }
+
+        let dto = CreateEmailViewDto {
+            subscriber_id,
+            sequence_email_id,
+            campaign_id,
+            ip_address,
+            user_agent,
+            country: location_info.as_ref()
+                .and_then(|l| l.country.as_ref())
+                .and_then(|c| c.names.as_ref())
+                .and_then(|n| n.get("en"))
+                .map(|s| s.to_string()),
+            city: location_info.as_ref()
+                .and_then(|l| l.city.as_ref())
+                .and_then(|c| c.names.as_ref())
+                .and_then(|n| n.get("en"))
+                .map(|s| s.to_string()),
+            region: location_info.as_ref()
+                .and_then(|l| l.subdivisions.as_ref())
+                .and_then(|s| s.first())
+                .and_then(|s| s.names.as_ref())
+                .and_then(|n| n.get("en"))
+                .map(|s| s.to_string()),
+            latitude: location_info.as_ref()
+                .and_then(|l| l.location.as_ref())
+                .and_then(|l| l.latitude)
+                .map(|lat| lat.to_string()),
+            longitude: location_info.as_ref()
+                .and_then(|l| l.location.as_ref())
+                .and_then(|l| l.longitude)
+                .map(|lon| lon.to_string()),
+            metadata: Some(serde_json::json!({})),
+        };
+
+        self.create_email_view(dto).await
     }
 }

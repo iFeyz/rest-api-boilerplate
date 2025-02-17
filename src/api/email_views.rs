@@ -35,6 +35,8 @@ pub async fn get_email_view(
     req: HttpRequest,
     geoip_reader: web::Data<Arc<Reader<Vec<u8>>>>,
 ) -> Result<HttpResponse, ApiError> {
+    tracing::info!("Received tracking request for: {:?}", path);
+    
     let result = service
         .get_email_view(req, path.into_inner(), geoip_reader.get_ref().as_ref())
         .await?;

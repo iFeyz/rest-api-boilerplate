@@ -52,6 +52,8 @@ pub struct EmailService {
     from_email: String,
 }
 
+//
+//** Create a new email service
 impl EmailService {
     pub fn new(host: String, username: String, password: String, from_email: String) -> Self {
         let creds = Credentials::new(username, password);
@@ -66,6 +68,8 @@ impl EmailService {
             from_email,
         }
     }
+
+
 
     pub async fn send_email(&self, to: &str, subject: &str, body: &str) -> Result<(), ApiError> {
         let email = Message::builder()
@@ -111,15 +115,132 @@ impl EmailService {
         futures::future::join_all(futures).await
     }
 
+    /// Send emails to multiple recipients in chunks of 10
+    pub async fn send_batch_email(
+        &self,
+        recipients: Vec<String>,
+        subject: &str,
+        body: &str,
+    ) -> Result<(), ApiError> {
+        const CHUNK_SIZE: usize = 10;
+
+        // Split recipients into chunks of 10
+        for chunk in recipients.chunks(CHUNK_SIZE) {
+            // Create a single email message with multiple recipients
+            let mut email = Message::builder()
+                .from(self.from_email.parse().unwrap())
+                .subject(subject)
+                .header(ContentType::TEXT_HTML);
+
+            // Add all recipients in the current chunk
+            for recipient in chunk {
+                email = email.to(recipient.parse().unwrap());
+            }
+
+            // Add the body after adding all recipients
+            let email = email.body(String::from(body))
+                .map_err(|e| EmailError::MessageError(e.to_string()))?;
+
+            // Clone the SMTP client for the spawned task
+            let smtp_client = self.smtp_client.clone();
+
+            // Spawn a blocking task for SMTP operations
+            task::spawn_blocking(move || {
+                smtp_client
+                    .send(&email)
+                    .map_err(EmailError::SmtpError)
+            })
+            .await
+            .map_err(|e| EmailError::ExecutionError(e.to_string()))?
+            .map_err(ApiError::EmailError)?;
+
+            // Small delay between chunks to avoid overwhelming the SMTP server
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
+
+        Ok(())
+    }
+
+    /// Creates a tracking pixel HTML for email tracking
+    pub fn create_tracking_pixel(
+        &self,
+        campaign_id: i32,
+        sequence_email_id: i32,
+        subscriber_id: i32,
+    ) -> String {
+        let tracking_url = self.create_track_endpoint(campaign_id, sequence_email_id, subscriber_id);
+        format!(
+            r#"<img src="{}" width="1" height="1" alt="" style="display:none;border:0;width:1px;height:1px" />"#,
+            tracking_url
+        )
+    }
+
+    /// Creates a tracking endpoint URL
+    pub fn create_track_endpoint(
+        &self,
+        campaign_id: i32,
+        sequence_email_id: i32,
+        subscriber_id: i32,
+    ) -> String {
+        format!(
+            "{}/{}/{}/{}",
+            "http://localhost:8080/api/email_views",
+            subscriber_id,
+            sequence_email_id,
+            campaign_id
+        )
+    }
+
+    /// Adds tracking to an HTML email body
+    pub fn add_tracking_to_email(
+        &self,
+        body: &str,
+        campaign_id: i32,
+        sequence_email_id: i32,
+        subscriber_id: i32,
+    ) -> String {
+        let tracking_pixel = self.create_tracking_pixel(campaign_id, sequence_email_id, subscriber_id);
+        
+        // If the email has a </body> tag, insert before it
+        if body.contains("</body>") {
+            body.replace("</body>", &format!("{}</body>", tracking_pixel))
+        } else {
+            // Otherwise append to the end
+            format!("{}{}", body, tracking_pixel)
+        }
+    }
+
+    /// Send an email with tracking
+    pub async fn send_tracked_email(
+        &self,
+        to: &str,
+        subject: &str,
+        body: &str,
+        campaign_id: i32,
+        sequence_email_id: i32,
+        subscriber_id: i32,
+    ) -> Result<(), ApiError> {
+        let tracked_body = self.add_tracking_to_email(
+            body,
+            campaign_id,
+            sequence_email_id,
+            subscriber_id,
+        );
+
+        self.send_email(to, subject, &tracked_body).await
+    }
+
+    // Update send_emails_to_lists to include tracking
     pub async fn send_emails_to_lists(
         &self,
         pool: &PgPool,
         list_ids: &[i32],
         subject: &str,
         body: &str,
+        campaign_id: i32,
+        sequence_email_id: i32,
     ) -> Result<BulkEmailStats, ApiError> {
-        const FETCH_SIZE: i64 = 100;
-        const BATCH_SIZE: usize = 10;
+        const FETCH_SIZE: i64 = 50;
         
         tracing::info!("Starting to send emails to lists: {:?}", list_ids);
         
@@ -151,7 +272,7 @@ impl EmailService {
         let mut offset: i64 = 0;
 
         loop {
-            // Fetch next batch of subscribers with explicit table aliases
+            // Fetch next batch of subscribers
             let subscribers = sqlx::query_as!(
                 Subscriber,
                 r#"
@@ -185,27 +306,36 @@ impl EmailService {
 
             tracing::info!("Processing batch of {} subscribers", subscribers.len());
 
-            // Process fetched subscribers in smaller batches
-            for chunk in subscribers.chunks(BATCH_SIZE) {
-                tracing::info!("Sending to chunk of {} subscribers", chunk.len());
-                for subscriber in chunk {
-                    tracing::info!("Attempting to send email to: {}", subscriber.email);
-                    match self.send_email(&subscriber.email, subject, body).await {
-                        Ok(_) => {
-                            stats.successful_sends += 1;
-                            tracing::info!("Successfully sent email to: {}", subscriber.email);
-                        }
-                        Err(e) => {
-                            stats.failed_sends += 1;
-                            let error_msg = format!("Failed to send to {}: {}", subscriber.email, e);
-                            tracing::error!("{}", error_msg);
-                            stats.failures.push((subscriber.email.clone(), error_msg));
-                        }
+            // Create batch of emails with tracking pixels
+            let mut batch_recipients = Vec::new();
+            let mut tracked_body = String::new();
+
+            for subscriber in &subscribers {
+                // Add tracking pixel to email body
+                tracked_body = self.add_tracking_to_email(
+                    body,
+                    campaign_id,
+                    sequence_email_id,
+                    subscriber.id,
+                );
+                batch_recipients.push(subscriber.email.clone());
+            }
+
+            // Send the batch
+            match self.send_batch_email(batch_recipients, subject, &tracked_body).await {
+                Ok(_) => {
+                    stats.successful_sends += subscribers.len() as i32;
+                    tracing::info!("Successfully sent batch of {} emails", subscribers.len());
+                }   
+                Err(e) => {
+                    stats.failed_sends += subscribers.len() as i32;
+                    let error_msg = format!("Failed to send batch: {}", e);
+                    tracing::error!("{}", error_msg);
+                    // Record the first email in batch for error tracking
+                    if let Some(first_subscriber) = subscribers.first() {
+                        stats.failures.push((first_subscriber.email.clone(), error_msg));
                     }
                 }
-
-                // Small delay between batches
-                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             }
 
             offset += FETCH_SIZE;
@@ -257,7 +387,7 @@ impl EmailService {
         };
 
         // Use send_emails_to_lists for the actual sending
-        let bulk_stats = self.send_emails_to_lists(pool, list_ids, &subject, &body).await?;
+        let bulk_stats = self.send_emails_to_lists(pool, list_ids, &subject, &body, campaign_id, 0).await?;
 
         // Convert BulkEmailStats to CampaignEmailStats
         let campaign_stats = CampaignEmailStats {
