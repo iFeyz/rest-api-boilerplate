@@ -32,6 +32,7 @@ use crate::{
         campaign_repository::CampaignRepository,
         campaign_list_repository::CampaignListRepository,
         email_views_repository::EmailViewsRepository,
+        campaign_stats_repository::CampaignStatsRepository,
     },
     services::{
         subscriber_service::SubscriberService,
@@ -41,6 +42,7 @@ use crate::{
         campaign_service::CampaignService,
         campaign_list_service::CampaignListService,
         email_views_service::EmailViewsService,
+        campaign_stats_service::CampaignStatsService,
     },
 };
 
@@ -76,6 +78,7 @@ async fn setup_campaign_scheduler(
             match sequence_repo.get_pending_sequence_emails().await {
                 Ok(pending_emails) => {
                     for email in pending_emails {
+                        let sequence_id = email.id;
                         // Get campaign lists
                         let lists = match sqlx::query!(
                             r#"
@@ -115,7 +118,7 @@ async fn setup_campaign_scheduler(
                             &email.subject,
                             &email.body,
                             email.campaign_id,
-                            email.id,
+                            sequence_id
                         ).await {
                             Ok(stats) => {
                                 // Mettre à jour le statut en 'sent' et désactiver
@@ -230,6 +233,7 @@ async fn main() -> std::io::Result<()> {
     let campaign_repository = CampaignRepository::new(pool.clone());
     let campaign_list_repository = CampaignListRepository::new(pool.clone());
     let sequence_email_repository = SequenceEmailRepository::new(pool.clone());
+    let campaign_stats_repository = CampaignStatsRepository::new(pool.clone());
 
     // Now wrap the pool for web usage
     let pool = web::Data::new(pool);
@@ -246,7 +250,8 @@ async fn main() -> std::io::Result<()> {
     let campaign_list_service = web::Data::new(CampaignListService::new(campaign_list_repository));
     let sequence_email_repository = web::Data::new(sequence_email_repository.clone());
     let sequence_email_service = web::Data::new(SequenceEmailService::new(sequence_email_repository.get_ref().clone()));
-
+    let campaign_stats_repository = web::Data::new(campaign_stats_repository);
+    let campaign_stats_service = web::Data::new(CampaignStatsService::new(campaign_stats_repository));
     // Setup other services
     let email_service = setup_email_service().await;
     let email_service = web::Data::new(email_service);
@@ -291,6 +296,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(campaign_list_service.clone())
             .app_data(email_service.clone())
             .app_data(sequence_email_service.clone())
+            .app_data(campaign_stats_service.clone())
             .app_data(geoip_reader.clone())
             .service(api::subscriber::config())
             .service(api::lists::config())
@@ -300,6 +306,7 @@ async fn main() -> std::io::Result<()> {
             .service(api::campaign_list::config())
             .service(api::sequence_email::config())
             .service(api::email_views::config())
+            .service(api::campaign_stats::config())
             .configure(api::send_email::config)
     })
     .bind(("127.0.0.1", 8080))?

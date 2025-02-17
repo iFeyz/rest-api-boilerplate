@@ -117,4 +117,26 @@ impl CampaignListRepository {
 
         Ok(if result.rows_affected() > 0 { Some(()) } else { None })
     }
+
+    pub async fn get_campaign_lists(&self, campaign_id: i32) -> Result<Vec<CampaignList>, ApiError> {
+        let campaign_lists = sqlx::query_as!(
+            CampaignList,
+            r#"
+            SELECT 
+                cl.id as "id!: i32",
+                cl.campaign_id as "campaign_id!: i32",
+                cl.list_id as "list_id!: i32",
+                COALESCE(l.name, cl.list_name) as "list_name!"
+            FROM campaign_lists cl
+            LEFT JOIN lists l ON cl.list_id = l.id
+            WHERE cl.campaign_id = $1
+            ORDER BY cl.id
+            "#,
+            campaign_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(campaign_lists)
+    }
 } 

@@ -7,6 +7,7 @@ pub mod campaign_list;
 use actix_web::web;
 pub mod email_views;
 pub mod send_email;
+pub mod campaign_stats;
 pub mod sequence_email;
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(subscriber::config());
@@ -16,7 +17,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(campaign::config());
     cfg.service(campaign_list::config());
     cfg.service(email_views::config());
-    cfg.service(email_views::config());
+    cfg.service(campaign_stats::config());
     cfg.configure(send_email::config);
 }
 

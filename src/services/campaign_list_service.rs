@@ -21,8 +21,8 @@ impl CampaignListService {
         self.repository.find_by_campaign_and_list(campaign_id, list_id).await
     }
 
-    pub async fn get_campaign_lists(&self, pagination: PaginationDto) -> Result<Vec<CampaignList>, ApiError> {
-        self.repository.find_all(pagination).await
+    pub async fn get_campaign_lists(&self, campaign_id: i32) -> Result<Vec<CampaignList>, ApiError> {
+        self.repository.get_campaign_lists(campaign_id).await
     }
 
     pub async fn update_campaign_list(&self, campaign_id: i32, list_id: i32, campaign_list: UpdateCampaignListDto) -> Result<Option<CampaignList>, ApiError> {

@@ -54,6 +54,9 @@ pub struct EmailService {
 
 //
 //** Create a new email service
+//** Params : host , username , password , from_email
+//** Return : EmailService
+//
 impl EmailService {
     pub fn new(host: String, username: String, password: String, from_email: String) -> Self {
         let creds = Credentials::new(username, password);
@@ -70,7 +73,11 @@ impl EmailService {
     }
 
 
-
+    //
+    //** Send an email
+    //** Params : to , subject , body
+    //** Return : Result<(), ApiError>
+    //
     pub async fn send_email(&self, to: &str, subject: &str, body: &str) -> Result<(), ApiError> {
         let email = Message::builder()
             .from(self.from_email.parse().unwrap())

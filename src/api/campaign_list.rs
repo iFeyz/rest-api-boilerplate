@@ -4,6 +4,7 @@ use crate::{
     services::campaign_list_service::CampaignListService,
     error::ApiError,
 };
+use serde::Deserialize;
 
 pub fn config() -> actix_web::Scope {
     web::scope("/api/campaign_lists")
@@ -11,6 +12,11 @@ pub fn config() -> actix_web::Scope {
         .service(get_campaign_lists)
         .service(update_campaign_list)
         .service(delete_campaign_list)
+}
+
+#[derive(Deserialize)]
+struct CampaignListQuery {
+    campaign_id: i32,
 }
 
 #[post("")]
@@ -23,12 +29,14 @@ pub async fn create_campaign_list(
 }
 
 #[get("")]
-pub async fn get_campaign_lists(
+async fn get_campaign_lists(
+    query: web::Query<CampaignListQuery>,
     service: web::Data<CampaignListService>,
-    pagination: web::Query<PaginationDto>
-) -> Result<HttpResponse, ApiError> {
-    let campaign_lists = service.get_campaign_lists(pagination.into_inner()).await?;
-    Ok(HttpResponse::Ok().json(campaign_lists))
+) -> HttpResponse {
+    match service.get_campaign_lists(query.campaign_id).await {
+        Ok(lists) => HttpResponse::Ok().json(lists),
+        Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
+    }
 }
 
 #[put("/{campaign_id}/{list_id}")]
