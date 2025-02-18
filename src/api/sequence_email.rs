@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub fn config() -> actix_web::Scope {
-    web::scope("/api/sequence_emails")
+    web::scope("/api/sequence-emails")
         .service(create_sequence_email)
         .service(get_sequence_emails)
         .service(delete_sequence_email)

@@ -23,6 +23,7 @@ use crate::services::sequence_email_service::SequenceEmailService;
 use crate::error::ApiError;
 use crate::models::sequence_email::SequenceEmailStatus;
 
+
 use crate::{
     repositories::{
         subscriber_repository::SubscriberRepository,
@@ -33,6 +34,7 @@ use crate::{
         campaign_list_repository::CampaignListRepository,
         email_views_repository::EmailViewsRepository,
         campaign_stats_repository::CampaignStatsRepository,
+        global_stats_repository::GlobalStatsRepository,
     },
     services::{
         subscriber_service::SubscriberService,
@@ -43,6 +45,7 @@ use crate::{
         campaign_list_service::CampaignListService,
         email_views_service::EmailViewsService,
         campaign_stats_service::CampaignStatsService,
+        global_stats_service::GlobalStatsService,
     },
 };
 
@@ -234,6 +237,7 @@ async fn main() -> std::io::Result<()> {
     let campaign_list_repository = CampaignListRepository::new(pool.clone());
     let sequence_email_repository = SequenceEmailRepository::new(pool.clone());
     let campaign_stats_repository = CampaignStatsRepository::new(pool.clone());
+    let global_stats_repository = GlobalStatsRepository::new(pool.clone());
 
     // Now wrap the pool for web usage
     let pool = web::Data::new(pool);
@@ -252,6 +256,8 @@ async fn main() -> std::io::Result<()> {
     let sequence_email_service = web::Data::new(SequenceEmailService::new(sequence_email_repository.get_ref().clone()));
     let campaign_stats_repository = web::Data::new(campaign_stats_repository);
     let campaign_stats_service = web::Data::new(CampaignStatsService::new(campaign_stats_repository));
+    let global_stats_repository = web::Data::new(global_stats_repository);
+    let global_stats_service = web::Data::new(GlobalStatsService::new(global_stats_repository.get_ref().clone()));
     // Setup other services
     let email_service = setup_email_service().await;
     let email_service = web::Data::new(email_service);
@@ -298,6 +304,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(sequence_email_service.clone())
             .app_data(campaign_stats_service.clone())
             .app_data(geoip_reader.clone())
+            .app_data(global_stats_service.clone())
             .service(api::subscriber::config())
             .service(api::lists::config())
             .service(api::template::config())

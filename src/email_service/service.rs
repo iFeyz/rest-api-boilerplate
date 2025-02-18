@@ -162,7 +162,7 @@ impl EmailService {
             .map_err(ApiError::EmailError)?;
 
             // Small delay between chunks to avoid overwhelming the SMTP server
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         }
 
         Ok(())

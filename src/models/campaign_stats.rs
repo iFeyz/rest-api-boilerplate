@@ -15,6 +15,7 @@ pub struct CampaignStats {
     pub total_opens: i64,
     pub unique_opens: i64,
     pub open_rate: f64,
+    pub unopened_count: i64,
     
     // Sequence Stats
     pub total_sequence_emails: i64,
@@ -27,6 +28,10 @@ pub struct CampaignStats {
     // Time-based Stats
     pub opens_by_hour: Vec<TimeStats>,
     pub opens_by_day: Vec<TimeStats>,
+
+    // Subscriber Lists
+    pub opened_subscribers: Vec<SubscriberOpenInfo>,
+    pub unopened_subscribers: Vec<SubscriberInfo>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -64,4 +69,34 @@ pub struct TimeStats {
     pub time_period: String,
     pub total_opens: i64,
     pub percentage: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SubscriberOpenInfo {
+    pub subscriber_id: i32,
+    pub email: String,
+    pub first_open: DateTime<Utc>,
+    pub open_count: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SubscriberInfo {
+    pub subscriber_id: i32,
+    pub email: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SequenceEmailDetailedStats {
+    pub sequence_email_id: i32,
+    pub campaign_id: i32,
+    pub subject: String,
+    pub position: i32,
+    pub status: String,
+    pub sent_at: Option<DateTime<Utc>>,
+    pub total_subscribers: i64,
+    pub total_opens: i64,
+    pub unique_opens: i64,
+    pub open_rate: f64,
+    pub opened_subscribers: Vec<SubscriberOpenInfo>,
+    pub unopened_subscribers: Vec<SubscriberInfo>,
 } 

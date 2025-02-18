@@ -95,108 +95,110 @@ impl CampaignRepository {
     
         Ok(campaign)
     }
-pub async fn find_all(&self, filter: Option<CampaignFilter>, pagination: Option<PaginationParams>) -> Result<CampaignResponse<Campaign>, ApiError> {
-    let pagination = pagination.unwrap_or_default();
-    let offset = (pagination.page.unwrap_or_else(|| 1) - 1) * pagination.per_page.unwrap_or_else(|| 10);
 
-    // Préparer la liste des conditions et des paramètres dynamiques
-    let mut conditions = Vec::new();
-    let mut date_conditions = Vec::new();
-    let mut params = Vec::new();
+    pub async fn find_all(&self, filter: Option<CampaignFilter>, pagination: Option<PaginationParams>) -> Result<CampaignResponse<Campaign>, ApiError> {
+        let pagination = pagination.unwrap_or_default();
+        let offset = (pagination.page.unwrap_or_else(|| 1) - 1) * pagination.per_page.unwrap_or_else(|| 10);
 
-    if let Some(filter) = filter {
-        if let Some(id) = filter.id {
-            conditions.push(format!("id = {}", id));
-            params.push(id.to_string());
+        let mut conditions = Vec::new();
+        let mut params = Vec::new();
+        let mut param_count = 1;
+
+        if let Some(filter) = filter {
+            if let Some(id) = filter.id {
+                conditions.push(format!("id = ${}", param_count));
+                params.push(id.to_string());
+                param_count += 1;
+            }
+
+            if let Some(uuid) = filter.uuid {
+                conditions.push(format!("uuid = ${}", param_count));
+                params.push(uuid.to_string());
+                param_count += 1;
+            }
+
+            if let Some(name) = filter.name {
+                conditions.push(format!("name = ${}", param_count));
+                params.push(name);
+                param_count += 1;
+            }
+
+            if let Some(status) = filter.status {
+                conditions.push(format!("status::text = ${}", param_count));
+                params.push(status.to_string());
+                param_count += 1;
+            }
+
+            if let Some(from_email) = filter.from_email {
+                conditions.push(format!("from_email = ${}", param_count));
+                params.push(from_email);
+                param_count += 1;
+            }
+
+            if let Some(campaign_type) = filter.campaign_type {
+                conditions.push(format!("campaign_type::text = ${}", param_count));
+                params.push(campaign_type.to_string());
+                param_count += 1;
+            }
+
+            if let Some(subject) = filter.subject {
+                conditions.push(format!("subject = ${}", param_count));
+                params.push(subject);
+                param_count += 1;
+            }
+
+            if let Some(tags) = filter.tags {
+                conditions.push(format!("tags = ${}", param_count));
+                params.push(tags);
+                param_count += 1;
+            }
+
+            if let Some(messenger) = filter.messenger {
+                conditions.push(format!("messenger = ${}", param_count));
+                params.push(messenger);
+                param_count += 1;
+            }
+
+            if let Some(to_send) = filter.to_send {
+                conditions.push(format!("to_send = ${}", param_count));
+                params.push(to_send.to_string());
+                param_count += 1;
+            }
+
+            if let Some(sent) = filter.sent {
+                conditions.push(format!("sent = ${}", param_count));
+                params.push(sent.to_string());
+                param_count += 1;
+            }
+
+            if let Some(max_subscriber_id) = filter.max_subscriber_id {
+                conditions.push(format!("max_subscriber_id = ${}", param_count));
+                params.push(max_subscriber_id.to_string());
+                param_count += 1;
+            }
+
+            if let Some(last_subscriber_id) = filter.last_subscriber_id {
+                conditions.push(format!("last_subscriber_id = ${}", param_count));
+                params.push(last_subscriber_id.to_string());
+                param_count += 1;
+            }
+
+            if let Some(started_at) = filter.started_at {
+                conditions.push(format!("started_at = ${}", param_count));
+                params.push(started_at.to_rfc3339());
+                param_count += 1;
+            }
         }
-
-        if let Some(uuid) = filter.uuid {
-            conditions.push(format!("uuid = {}", uuid));
-            params.push(uuid.to_string());
-        }
-
-        if let Some(name) = filter.name {
-            conditions.push(format!("name = {}", name));
-            params.push(name);
-        }
-    // Adding for enums
-    //    if let Some(status) = filter.status {
-    //        conditions.push(format!("status = {}", status));
-    //        params.push(status.to_string());
-    //    }
-
-        if let Some(subject) = filter.subject {
-            conditions.push(format!("subject = {}", subject));
-            params.push(subject);
-        }
-
-        if let Some(from_email) = filter.from_email {
-            conditions.push(format!("from_email = {}", from_email));
-            params.push(from_email);
-        }
-
-       // if let Some(campaign_type) = filter.campaign_type {
-       //     conditions.push(format!("campaign_type = {}", campaign_type));
-       //     params.push(campaign_type.to_string());
-       // }
-
-       if let Some(tags) = filter.tags {
-        conditions.push(format!("tags = {}", tags));
-        params.push(tags);
-       }
-
-       if let Some(messenger) = filter.messenger {
-        conditions.push(format!("messenger = {}", messenger));
-        params.push(messenger);
-       }
-
-       if let Some(to_send) = filter.to_send {
-        conditions.push(format!("to_send = {}", to_send));
-        params.push(to_send.to_string());
-       }
-
-       if let Some(sent) = filter.sent {
-        conditions.push(format!("sent = {}", sent));
-        params.push(sent.to_string());
-       }
-
-       if let Some(max_subscriber_id) = filter.max_subscriber_id {
-        conditions.push(format!("max_subscriber_id = {}", max_subscriber_id));
-        params.push(max_subscriber_id.to_string());
-       }
-
-       if let Some(last_subscriber_id) = filter.last_subscriber_id {
-        conditions.push(format!("last_subscriber_id = {}", last_subscriber_id));
-        params.push(last_subscriber_id.to_string());
-       }
-
-       // Need adding data filter 
-       if let Some(started_at) = filter.started_at {
-        date_conditions.push(format!("started_at = {}", started_at));
-        params.push(started_at.to_rfc3339());
-       }
-
-
-    }
-        // Adding other closes
 
         let where_clause = if conditions.is_empty() {
             String::new()
         } else {
             format!("WHERE {}", conditions.join(" AND "))
         };
-        // Adding date filter
-        let where_over_clause = if date_conditions.is_empty() {
-            String::new()
-        } else {
-            format!("WHERE {} < created_at", date_conditions.join(" AND "))
-        };
 
-        // Construire la requete SQL
         let query = format!(
-            "SELECT * FROM campaigns {} {} ORDER BY {} {} LIMIT {} OFFSET {}", 
+            "SELECT * FROM campaigns {} ORDER BY {} {} LIMIT {} OFFSET {}", 
             where_clause,
-            where_over_clause,
             pagination.sort_by.unwrap_or_else(|| "id".to_string()),
             pagination.sort_order.unwrap_or_else(|| "ASC".to_string()),
             pagination.per_page.unwrap_or_else(|| 10),
@@ -209,12 +211,6 @@ pub async fn find_all(&self, filter: Option<CampaignFilter>, pagination: Option<
             query_builder = query_builder.bind(param);
         }
 
-        query_builder = query_builder
-            .bind(pagination.per_page.unwrap_or_else(|| 10) as i64)
-            .bind(offset as i64);
-
-       
-
         let campaigns = query_builder
             .fetch_all(&self.pool)
             .await?;
@@ -224,8 +220,7 @@ pub async fn find_all(&self, filter: Option<CampaignFilter>, pagination: Option<
             page: pagination.page.unwrap_or_else(|| 1),
             per_page: pagination.per_page.unwrap_or_else(|| 10),
         })
-    
-}
+    }
 
     pub async fn find_by_id(&self, id: i32) -> Result<Option<Campaign>, ApiError> {
         let campaign = sqlx::query_as!(

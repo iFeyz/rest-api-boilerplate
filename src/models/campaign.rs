@@ -34,25 +34,21 @@ pub struct Campaign {
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "campaign_status", rename_all = "lowercase")]
+#[sqlx(type_name = "campaign_status", rename_all = "snake_case")]
 pub enum CampaignStatus {
     Draft,
     Running,
-    Scheduled,
-    Paused,
-    Cancelled,
     Finished,
+    Cancelled,
 }
 
-impl ToString for CampaignStatus {
-    fn to_string(&self) -> String {
+impl fmt::Display for CampaignStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Draft => "draft".to_string(),
-            Self::Running => "running".to_string(),
-            Self::Scheduled => "scheduled".to_string(),
-            Self::Paused => "paused".to_string(),
-            Self::Cancelled => "cancelled".to_string(),
-            Self::Finished => "finished".to_string(),
+            CampaignStatus::Draft => write!(f, "draft"),
+            CampaignStatus::Running => write!(f, "running"),
+            CampaignStatus::Finished => write!(f, "finished"),
+            CampaignStatus::Cancelled => write!(f, "cancelled"),
         }
     }
 }
@@ -64,10 +60,21 @@ impl Default for CampaignStatus {
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "campaign_type", rename_all = "lowercase")]
+#[sqlx(type_name = "campaign_type", rename_all = "snake_case")]
 pub enum CampaignType {
     Regular,
-    Optin,
+    Automated,
+    Sequence,
+}
+
+impl fmt::Display for CampaignType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CampaignType::Regular => write!(f, "regular"),
+            CampaignType::Automated => write!(f, "automated"),
+            CampaignType::Sequence => write!(f, "sequence"),
+        }
+    }
 }
 
 impl Default for CampaignType {

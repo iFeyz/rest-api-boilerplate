@@ -8,3 +8,4 @@ pub mod sequence_emails;
 pub mod email_views;
 pub mod sequence_email;
 pub mod campaign_stats;
+pub mod global_stats;

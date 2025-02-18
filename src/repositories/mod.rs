@@ -7,3 +7,4 @@ pub mod campaign_list_repository;
 pub mod email_views_repository;
 pub mod sequence_email_repository;
 pub mod campaign_stats_repository;
+pub mod global_stats_repository;

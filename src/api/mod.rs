@@ -18,6 +18,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(campaign_list::config());
     cfg.service(email_views::config());
     cfg.service(campaign_stats::config());
+    cfg.service(sequence_email::config());
     cfg.configure(send_email::config);
 }
 
