@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH subscriber_counts AS (\n                SELECT COUNT(DISTINCT sl.subscriber_id) as total_subscribers\n                FROM campaign_lists cl\n                JOIN subscriber_lists sl ON cl.list_id = sl.list_id\n                WHERE cl.campaign_id = $1\n            ),\n            email_stats AS (\n                SELECT \n                    COUNT(DISTINCT ev.id) as total_opens,\n                    COUNT(DISTINCT ev.subscriber_id) as unique_opens,\n                    CAST((SELECT sent FROM campaigns WHERE id = $1) AS bigint) as total_sent\n                FROM sequence_emails se\n                LEFT JOIN email_views ev ON se.id = ev.sequence_email_id\n                WHERE se.campaign_id = $1\n            )\n            SELECT \n                sc.total_subscribers,\n                es.total_sent,\n                es.total_opens,\n                es.unique_opens,\n                CASE \n                    WHEN es.total_sent > 0 \n                    THEN (CAST(es.unique_opens AS float8) / CAST(es.total_sent AS float8) * 100.0)\n                    ELSE 0.0 \n                END as \"open_rate!: f64\"\n            FROM subscriber_counts sc\n            CROSS JOIN email_stats es\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total_subscribers",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_sent",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "total_opens",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "unique_opens",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "open_rate!: f64",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "1de28e429eecf8c6612c2725dc6a04d1415b95d21ee4a791e4b58766b4f187d3"
+}

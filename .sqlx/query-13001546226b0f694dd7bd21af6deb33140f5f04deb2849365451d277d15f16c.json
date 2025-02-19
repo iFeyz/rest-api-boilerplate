@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH subscriber_count AS (\n                SELECT COUNT(DISTINCT sl.subscriber_id) as total_subscribers\n                FROM campaign_lists cl\n                JOIN subscriber_lists sl ON cl.list_id = sl.list_id\n                WHERE cl.campaign_id = $1 AND sl.status = 'confirmed'\n            )\n            SELECT \n                se.id as sequence_email_id,\n                se.position,\n                se.subject,\n                se.status as \"status!: String\",\n                se.send_at as sent_at,\n                (SELECT total_subscribers FROM subscriber_count) as \"total_sent!\",\n                COUNT(ev.id) as \"total_opens!\",\n                COUNT(DISTINCT ev.subscriber_id) as \"unique_opens!\",\n                CASE \n                    WHEN (SELECT total_subscribers FROM subscriber_count) > 0 \n                    THEN (CAST(COUNT(DISTINCT ev.subscriber_id) AS float8) / \n                          CAST((SELECT total_subscribers FROM subscriber_count) AS float8) * 100.0)\n                    ELSE 0.0 \n                END as \"open_rate!: f64\"\n            FROM sequence_emails se\n            LEFT JOIN email_views ev ON se.id = ev.sequence_email_id\n            WHERE se.campaign_id = $1\n            GROUP BY se.id, se.position, se.subject, se.status, se.send_at\n            ORDER BY se.position\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sequence_email_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "position",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "subject",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "status!: String",
+        "type_info": {
+          "Custom": {
+            "name": "sequence_email_status",
+            "kind": {
+              "Enum": [
+                "draft",
+                "sending",
+                "sent",
+                "failed"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "sent_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "total_sent!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "total_opens!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "unique_opens!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "open_rate!: f64",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "13001546226b0f694dd7bd21af6deb33140f5f04deb2849365451d277d15f16c"
+}

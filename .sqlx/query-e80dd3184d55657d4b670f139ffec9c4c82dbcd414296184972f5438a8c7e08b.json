@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE campaigns\n            SET status = 'scheduled',\n                sequence_start_date = $1,\n                archive_meta = jsonb_set(\n                    COALESCE(archive_meta, '{}'::jsonb),\n                    '{schedule}',\n                    $2::jsonb\n                )\n            WHERE id = $3\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Jsonb",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e80dd3184d55657d4b670f139ffec9c4c82dbcd414296184972f5438a8c7e08b"
+}

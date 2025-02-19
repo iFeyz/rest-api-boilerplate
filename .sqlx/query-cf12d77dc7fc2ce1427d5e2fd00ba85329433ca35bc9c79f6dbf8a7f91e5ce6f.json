@@ -1,0 +1,116 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id as \"id!: i32\",\n                campaign_id as \"campaign_id!: i32\",\n                position as \"position!: i32\",\n                subject as \"subject!: String\",\n                body as \"body!: String\",\n                template_id as \"template_id?: i32\",\n                content_type as \"content_type!: _\",\n                status as \"status!: _\",\n                metadata as \"metadata!: JsonValue\",\n                is_active as \"is_active!: bool\",\n                send_at as \"send_at?: DateTime<Utc>\",\n                created_at as \"created_at!: DateTime<Utc>\",\n                updated_at as \"updated_at!: DateTime<Utc>\"\n            FROM sequence_emails\n            WHERE is_active = true\n            AND send_at <= NOW()\n            AND status = 'draft'\n            AND NOT EXISTS (\n                SELECT 1 FROM email_views \n                WHERE email_views.sequence_email_id = sequence_emails.id\n            )\n            ORDER BY campaign_id, position ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "campaign_id!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "position!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "subject!: String",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "body!: String",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "template_id?: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "content_type!: _",
+        "type_info": {
+          "Custom": {
+            "name": "content_type",
+            "kind": {
+              "Enum": [
+                "richtext",
+                "html",
+                "plain",
+                "markdown"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "status!: _",
+        "type_info": {
+          "Custom": {
+            "name": "sequence_email_status",
+            "kind": {
+              "Enum": [
+                "draft",
+                "sending",
+                "sent",
+                "failed"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "metadata!: JsonValue",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_active!: bool",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "send_at?: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at!: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at!: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "cf12d77dc7fc2ce1427d5e2fd00ba85329433ca35bc9c79f6dbf8a7f91e5ce6f"
+}

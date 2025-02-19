@@ -1,0 +1,137 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE sequence_emails\n            SET \n                subject = COALESCE($2, subject),\n                body = COALESCE($3, body),\n                template_id = COALESCE($4, template_id),\n                content_type = COALESCE($5::content_type, content_type),\n                metadata = COALESCE($6, metadata),\n                is_active = COALESCE($7, is_active),\n                send_at = $8,\n                updated_at = CURRENT_TIMESTAMP\n            WHERE id = $1\n            RETURNING \n                id as \"id!: i32\",\n                campaign_id as \"campaign_id!: i32\",\n                position as \"position!: i32\",\n                subject as \"subject!: String\",\n                body as \"body!: String\",\n                template_id as \"template_id?: i32\",\n                content_type as \"content_type!: _\",\n                status as \"status!: _\",\n                metadata as \"metadata!: JsonValue\",\n                is_active as \"is_active!: bool\",\n                send_at as \"send_at?: DateTime<Utc>\",\n                created_at as \"created_at!: DateTime<Utc>\",\n                updated_at as \"updated_at!: DateTime<Utc>\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "campaign_id!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "position!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "subject!: String",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "body!: String",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "template_id?: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "content_type!: _",
+        "type_info": {
+          "Custom": {
+            "name": "content_type",
+            "kind": {
+              "Enum": [
+                "richtext",
+                "html",
+                "plain",
+                "markdown"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "status!: _",
+        "type_info": {
+          "Custom": {
+            "name": "sequence_email_status",
+            "kind": {
+              "Enum": [
+                "draft",
+                "sending",
+                "sent",
+                "failed"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "metadata!: JsonValue",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_active!: bool",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "send_at?: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at!: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at!: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Text",
+        "Int4",
+        {
+          "Custom": {
+            "name": "content_type",
+            "kind": {
+              "Enum": [
+                "richtext",
+                "html",
+                "plain",
+                "markdown"
+              ]
+            }
+          }
+        },
+        "Jsonb",
+        "Bool",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "836dcdeffebb751dd7439158c70af504ba3b464f051a2584ea66e9a8dccf1454"
+}

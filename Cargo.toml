@@ -1,12 +1,19 @@
 [package]
 name = "api-boilerplate"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 maxminddb = "0.23.0"
 actix-web = "4.5.1"
-sqlx = { version = "0.7", features = ["runtime-tokio", "tls-native-tls", "postgres", "bigdecimal", "chrono", "uuid"] }
+sqlx = { version = "0.7", features = [
+    "runtime-tokio-native-tls",
+    "postgres",
+    "bigdecimal",
+    "chrono",
+    "uuid",
+    "migrate"
+] }
 tokio = { version = "1.36", features = ["full"] }
 tokio-cron-scheduler = "*"
 serde = { version = "1.0", features = ["derive"] }

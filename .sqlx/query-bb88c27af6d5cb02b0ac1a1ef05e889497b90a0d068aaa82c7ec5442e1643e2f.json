@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT \n                    s.id, \n                    s.uuid, \n                    s.email, \n                    s.name, \n                    s.attribs,\n                    s.status as \"status: SubscriberStatus\",\n                    s.created_at,\n                    s.updated_at\n                FROM subscribers s\n                JOIN subscriber_lists sl ON s.id = sl.subscriber_id\n                WHERE sl.list_id = ANY($1)\n                AND sl.status = 'confirmed'\n                AND s.status = 'enabled'\n                ORDER BY s.id\n                LIMIT $2 OFFSET $3\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "attribs",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "status: SubscriberStatus",
+        "type_info": {
+          "Custom": {
+            "name": "subscriber_status",
+            "kind": {
+              "Enum": [
+                "enabled",
+                "disabled",
+                "blocklisted"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4Array",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "bb88c27af6d5cb02b0ac1a1ef05e889497b90a0d068aaa82c7ec5442e1643e2f"
+}

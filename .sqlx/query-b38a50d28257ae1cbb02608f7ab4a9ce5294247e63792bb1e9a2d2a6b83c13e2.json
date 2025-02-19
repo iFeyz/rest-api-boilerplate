@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE templates SET \n                name = COALESCE($2, name),\n                type = COALESCE($3, type),\n                subject = COALESCE($4, subject),\n                body = COALESCE($5, body),\n                is_default = COALESCE($6, is_default),\n                updated_at = NOW()\n            WHERE id = $1\n            RETURNING id, name, type as \"template_type: TemplateType\", subject, body, is_default, \n                created_at \"created_at!\", updated_at \"updated_at!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "template_type: TemplateType",
+        "type_info": {
+          "Custom": {
+            "name": "template_type",
+            "kind": {
+              "Enum": [
+                "campaign",
+                "tx"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "subject",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "body",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "is_default",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        {
+          "Custom": {
+            "name": "template_type",
+            "kind": {
+              "Enum": [
+                "campaign",
+                "tx"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "b38a50d28257ae1cbb02608f7ab4a9ce5294247e63792bb1e9a2d2a6b83c13e2"
+}

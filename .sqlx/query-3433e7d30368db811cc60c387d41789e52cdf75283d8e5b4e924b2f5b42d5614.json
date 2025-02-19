@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                COALESCE(city, 'Unknown') as \"city!\",\n                COALESCE(country, 'Unknown') as \"country!\",\n                COUNT(*) as \"total_opens!\",\n                COUNT(DISTINCT subscriber_id) as \"unique_subscribers!\",\n                CAST(COUNT(DISTINCT subscriber_id) AS float8) / \n                    NULLIF(COUNT(*), 0) * 100.0 as \"engagement_rate!\"\n            FROM email_views\n            GROUP BY city, country\n            ORDER BY COUNT(*) DESC\n            LIMIT 5\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "city!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "country!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "total_opens!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "unique_subscribers!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "engagement_rate!",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "3433e7d30368db811cc60c387d41789e52cdf75283d8e5b4e924b2f5b42d5614"
+}

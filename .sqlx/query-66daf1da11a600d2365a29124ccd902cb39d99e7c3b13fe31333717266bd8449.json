@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE subscribers SET \n                name = $2, \n                attribs = $3, \n                status = $4::subscriber_status \n            WHERE id = $1 \n            RETURNING \n                id, \n                uuid, \n                email, \n                name, \n                attribs,\n                status as \"status!: SubscriberStatus\",\n                created_at, \n                updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "attribs",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "status!: SubscriberStatus",
+        "type_info": {
+          "Custom": {
+            "name": "subscriber_status",
+            "kind": {
+              "Enum": [
+                "enabled",
+                "disabled",
+                "blocklisted"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Jsonb",
+        {
+          "Custom": {
+            "name": "subscriber_status",
+            "kind": {
+              "Enum": [
+                "enabled",
+                "disabled",
+                "blocklisted"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "66daf1da11a600d2365a29124ccd902cb39d99e7c3b13fe31333717266bd8449"
+}

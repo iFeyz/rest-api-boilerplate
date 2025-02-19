@@ -1,0 +1,23 @@
+# Ignore everything by default
+*
+
+# Allow these files
+!Cargo.toml
+!Cargo.lock
+!src/
+!migrations/
+!.sqlx/
+!scripts/
+!target/release/api-boilerplate
+!GeoIP2-City.mmdb
+
+# Explicitly ignore
+target/
+.git/
+.gitignore
+.env
+Dockerfile
+docker-compose.yml
+README.md
+deploy.sh
+deploy-test.sh

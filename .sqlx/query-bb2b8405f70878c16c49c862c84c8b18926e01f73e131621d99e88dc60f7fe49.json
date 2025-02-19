@@ -1,0 +1,96 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE lists \n            SET \n                name = CASE WHEN $1::text IS NOT NULL THEN $1 ELSE name END,\n                \"type\" = CASE WHEN $2::text IS NOT NULL THEN $2::list_type ELSE \"type\" END,\n                optin = CASE WHEN $3::text IS NOT NULL THEN $3::list_optin ELSE optin END,\n                tags = CASE WHEN $4::text[] IS NOT NULL THEN $4 ELSE tags END,\n                description = CASE WHEN $5::text IS NOT NULL THEN $5 ELSE description END\n            WHERE id = $6\n            RETURNING \n                id, \n                uuid,\n                name,\n                \"type\" as \"type!: ListType\",\n                optin as \"optin!: ListOptin\",\n                tags as \"tags!: Vec<String>\",\n                description,\n                created_at,\n                updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "type!: ListType",
+        "type_info": {
+          "Custom": {
+            "name": "list_type",
+            "kind": {
+              "Enum": [
+                "public",
+                "private",
+                "temporary"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "optin!: ListOptin",
+        "type_info": {
+          "Custom": {
+            "name": "list_optin",
+            "kind": {
+              "Enum": [
+                "single",
+                "double"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "tags!: Vec<String>",
+        "type_info": "VarcharArray"
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "TextArray",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "bb2b8405f70878c16c49c862c84c8b18926e01f73e131621d99e88dc60f7fe49"
+}

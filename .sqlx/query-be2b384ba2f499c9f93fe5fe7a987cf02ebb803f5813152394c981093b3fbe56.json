@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT EXTRACT(HOUR FROM opened_at)::int as hour,\n                   COUNT(*) as opens\n            FROM email_views\n            GROUP BY hour\n            ORDER BY opens DESC\n            LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "hour",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "opens",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "be2b384ba2f499c9f93fe5fe7a987cf02ebb803f5813152394c981093b3fbe56"
+}

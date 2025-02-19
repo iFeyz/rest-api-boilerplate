@@ -11,6 +11,45 @@ services:
       POSTGRES_DB: rust_api_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  app:
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: "postgres://postgres:postgres@postgres:5432/rust_api_db"
+      RUST_LOG: "debug"
+      SERVER__HOST: "0.0.0.0"
+      SERVER__PORT: "8080"
+      # SMTP Configuration
+      SMTP_HOST: "ssl0.ovh.net"
+      SMTP_PORT: "465"
+      SMTP_USERNAME: "sender@wayfe.store"
+      SMTP_PASSWORD: "wayfesender"
+      SMTP_SENDER_EMAIL: "sender@wayfe.store"
+      FROM_EMAIL: "sender@wayfe.store"
+      API_KEY: "OlH2V4j/OMfBnxfUvsrjoiD9xcI+/ihMv1go8/hf2HI="
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/usr/local/bin/migrations
+      # Commentez cette ligne si vous utilisez le téléchargement dans le Dockerfile
+      # - ./GeoLite2-City.mmdb:/usr/local/bin/GeoLite2-City.mmdb
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   postgres_data:

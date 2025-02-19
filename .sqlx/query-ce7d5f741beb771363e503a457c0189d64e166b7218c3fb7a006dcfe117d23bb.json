@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT subject, body \n                FROM sequence_emails \n                WHERE campaign_id = $1 \n                AND is_active = true\n                AND (send_at IS NULL OR send_at <= NOW())\n                ORDER BY position ASC\n                LIMIT 1\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subject",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "body",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "ce7d5f741beb771363e503a457c0189d64e166b7218c3fb7a006dcfe117d23bb"
+}

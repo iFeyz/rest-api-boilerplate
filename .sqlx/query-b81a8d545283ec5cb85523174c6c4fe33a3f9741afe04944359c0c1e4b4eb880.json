@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH total_stats AS (\n                SELECT \n                    COUNT(DISTINCT sl.subscriber_id) as total_subscribers\n                FROM campaign_lists cl\n                JOIN subscriber_lists sl ON cl.list_id = sl.list_id\n                WHERE cl.campaign_id = $1 AND sl.status = 'confirmed'\n            )\n            SELECT \n                c.id as campaign_id,\n                ts.total_subscribers,\n                COUNT(DISTINCT ev.subscriber_id)::bigint as unique_opens,\n                COUNT(ev.id)::bigint as total_opens\n            FROM campaigns c\n            CROSS JOIN total_stats ts\n            LEFT JOIN sequence_emails se ON se.campaign_id = c.id\n            LEFT JOIN email_views ev ON ev.sequence_email_id = se.id\n            WHERE c.id = $1\n            GROUP BY c.id, ts.total_subscribers\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "campaign_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_subscribers",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "unique_opens",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "total_opens",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "b81a8d545283ec5cb85523174c6c4fe33a3f9741afe04944359c0c1e4b4eb880"
+}
