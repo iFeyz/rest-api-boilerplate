@@ -2,7 +2,7 @@
 FROM --platform=linux/amd64 rust:1.85 as builder
 
 WORKDIR /usr/src/app
-ENV DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
+ENV SQLX_OFFLINE=true
 
 # Copy only the files needed for dependency resolution first
 COPY Cargo.toml ./
