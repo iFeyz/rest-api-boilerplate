@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                                    UPDATE sequence_emails \n                                    SET is_active = false\n                                    WHERE id = $1\n                                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a929e0372f0be701bae0ec56a290592a64fa48a2b16c6ce4f75c69bd85aeb0ed"
+}
