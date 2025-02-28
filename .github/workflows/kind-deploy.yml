@@ -2,7 +2,7 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ monitoring ]
+    branches: [ main ]
   workflow_dispatch:
 
 env:
@@ -36,7 +36,7 @@ jobs:
             ${{ env.DOCKER_REPO }}/${{ env.IMAGE_NAME }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max.
-          
+
       - name: Trigger deployment webhook
         run: |
           curl -X POST "${{ secrets.WEBHOOK_URL }}" \
