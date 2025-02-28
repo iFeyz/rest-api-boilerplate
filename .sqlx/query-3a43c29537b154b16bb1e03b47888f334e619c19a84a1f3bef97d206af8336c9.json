@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    SELECT \n                        subscriber_id,\n                        list_id,\n                        meta,\n                        status as \"status!: SubscriptionStatus\",\n                        created_at,\n                        updated_at\n                    FROM subscriber_lists \n                    WHERE list_id = $1\n                    ORDER BY created_at DESC\n                    LIMIT $2 OFFSET $3\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscriber_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "list_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "meta",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 3,
+        "name": "status!: SubscriptionStatus",
+        "type_info": {
+          "Custom": {
+            "name": "subscription_status",
+            "kind": {
+              "Enum": [
+                "unconfirmed",
+                "confirmed",
+                "unsubscribed"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "3a43c29537b154b16bb1e03b47888f334e619c19a84a1f3bef97d206af8336c9"
+}

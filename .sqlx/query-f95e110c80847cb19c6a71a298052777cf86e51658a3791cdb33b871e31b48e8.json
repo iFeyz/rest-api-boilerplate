@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                                    SELECT list_id \n                                    FROM campaign_lists \n                                    WHERE campaign_id = $1\n                                    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "list_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "f95e110c80847cb19c6a71a298052777cf86e51658a3791cdb33b871e31b48e8"
+}

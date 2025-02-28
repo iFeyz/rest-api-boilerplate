@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH total_opens AS (\n                SELECT COUNT(DISTINCT ev.id) as total\n                FROM email_views ev\n                JOIN sequence_emails se ON ev.sequence_email_id = se.id\n                WHERE se.campaign_id = $1\n            )\n            SELECT \n                to_char(ev.opened_at, 'Day') as \"time_period!\",\n                COUNT(ev.id) as \"total_opens!\",\n                CASE \n                    WHEN (SELECT total FROM total_opens) > 0 \n                    THEN (CAST(COUNT(ev.id) AS float8) / CAST((SELECT total FROM total_opens) AS float8) * 100.0)\n                    ELSE 0.0 \n                END as \"percentage!: f64\"\n            FROM email_views ev\n            JOIN sequence_emails se ON ev.sequence_email_id = se.id\n            WHERE se.campaign_id = $1\n            GROUP BY to_char(ev.opened_at, 'Day'), EXTRACT(DOW FROM ev.opened_at)\n            ORDER BY EXTRACT(DOW FROM ev.opened_at)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "time_period!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_opens!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "percentage!: f64",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "fca9a5934b05fd6c71e6e768b3cce6f0c2cdb83989c8b7274451fd03f26b78e6"
+}

@@ -1,0 +1,7 @@
+digraph ast {
+    "setup_email_service"[label="setup_email_service"];
+    "setup_campaign_scheduler"[label="setup_campaign_scheduler"];
+    "main"[label="main"];
+    "main" -> "setup_email_service"[label=""][style="dashed"][arrowhead="vee"];
+    "main" -> "setup_campaign_scheduler"[label=""][style="dashed"][arrowhead="vee"];
+}

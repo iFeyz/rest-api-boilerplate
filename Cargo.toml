@@ -1,0 +1,45 @@
+[package]
+name = "api-boilerplate"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+maxminddb = "0.23.0"
+actix-web = "4.5.1"
+sqlx = { version = "0.7", features = [
+    "runtime-tokio-native-tls",
+    "postgres",
+    "bigdecimal",
+    "chrono",
+    "uuid",
+    "migrate"
+] }
+tokio = { version = "1.36", features = ["full"] }
+tokio-cron-scheduler = "*"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dotenv = "0.15"
+config = "0.14"
+uuid = { version = "1.7", features = ["serde", "v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+time = { version = "0.3", features = ["serde"] }
+futures = "0.3"
+actix-cors = "0.7"
+async-trait = "0.1" 
+
+lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls"] }
+
+bigdecimal = { version = "0.3" }
+num-traits = "0.2"
+actix-web-prom = "0.7"
+prometheus = "0.13"
+sysinfo = "0.29"
+
+[build-dependencies]
+rust2uml = "0.0.2"
+
+[profile.release]
+lto = 'fat'

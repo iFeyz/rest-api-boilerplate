@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                s.id as subscriber_id,\n                s.email,\n                MIN(ev.opened_at) as \"first_open!\",\n                COUNT(ev.id)::bigint as \"open_count!\"\n            FROM subscribers s\n            JOIN email_views ev ON s.id = ev.subscriber_id\n            JOIN sequence_emails se ON ev.sequence_email_id = se.id\n            WHERE se.campaign_id = $1\n            GROUP BY s.id, s.email\n            ORDER BY MIN(ev.opened_at) ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscriber_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "first_open!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "open_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "c4547ee2e39bb0fcc8804bc35e394eebc467ad5cf0746e7dcb3e6abcf2d28e13"
+}

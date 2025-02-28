@@ -1,0 +1,220 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO campaigns (\n                name, \n                uuid,\n                subject, \n                from_email, \n                status, \n                campaign_type,\n                tags, \n                messenger,\n                headers,\n                to_send,\n                sent,\n                max_subscriber_id,\n                last_subscriber_id,\n                archive,\n                archive_slug,\n                archive_template_id,\n                archive_meta,\n                sequence_start_date,  \n                sequence_end_date    \n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)\n            RETURNING \n                id, uuid, \n                name as \"name!\", \n                subject as \"subject!\", \n                from_email as \"from_email!\", \n                status as \"status!: CampaignStatus\",\n                campaign_type as \"campaign_type!: CampaignType\",\n                tags,\n                messenger as \"messenger!\",\n                headers as \"headers!\",\n                to_send as \"to_send!\",\n                sent as \"sent!\",\n                max_subscriber_id as \"max_subscriber_id!\",\n                last_subscriber_id as \"last_subscriber_id!\",\n                archive as \"archive!\",\n                archive_slug,\n                archive_template_id,\n                archive_meta as \"archive_meta!\",\n                started_at,\n                created_at,\n                updated_at,\n                sequence_start_date,\n                sequence_end_date\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "subject!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "from_email!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "status!: CampaignStatus",
+        "type_info": {
+          "Custom": {
+            "name": "campaign_status",
+            "kind": {
+              "Enum": [
+                "draft",
+                "running",
+                "scheduled",
+                "paused",
+                "cancelled",
+                "finished"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "campaign_type!: CampaignType",
+        "type_info": {
+          "Custom": {
+            "name": "campaign_type",
+            "kind": {
+              "Enum": [
+                "regular",
+                "optin"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "tags",
+        "type_info": "VarcharArray"
+      },
+      {
+        "ordinal": 8,
+        "name": "messenger!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "headers!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 10,
+        "name": "to_send!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "sent!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "max_subscriber_id!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "last_subscriber_id!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "archive!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "archive_slug",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "archive_template_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 17,
+        "name": "archive_meta!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 18,
+        "name": "started_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 19,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 20,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 21,
+        "name": "sequence_start_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 22,
+        "name": "sequence_end_date",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "campaign_status",
+            "kind": {
+              "Enum": [
+                "draft",
+                "running",
+                "scheduled",
+                "paused",
+                "cancelled",
+                "finished"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "campaign_type",
+            "kind": {
+              "Enum": [
+                "regular",
+                "optin"
+              ]
+            }
+          }
+        },
+        "VarcharArray",
+        "Text",
+        "Jsonb",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Bool",
+        "Text",
+        "Int4",
+        "Jsonb",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "2273f019fcb3a261dd9e19de35c3965c5c7c922df82814b6e7e7f50c9afaeb60"
+}

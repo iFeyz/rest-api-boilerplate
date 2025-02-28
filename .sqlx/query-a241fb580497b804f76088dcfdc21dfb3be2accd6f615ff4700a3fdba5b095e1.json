@@ -1,0 +1,146 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH subscriber_stats AS (\n                SELECT \n                    COUNT(*) as total_subscribers,\n                    COUNT(*) FILTER (WHERE status = 'enabled') as active_subscribers,\n                    COUNT(*) FILTER (WHERE DATE(created_at) = CURRENT_DATE) as new_today,\n                    COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') as new_this_week,\n                    COUNT(*) FILTER (WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE)) as new_this_month\n                FROM subscribers\n            ),\n            campaign_stats AS (\n                SELECT \n                    COUNT(*) as total_campaigns,\n                    COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '30 days') as last_30_days,\n                    COUNT(*) FILTER (WHERE status = 'draft') as active_campaigns,\n                    COUNT(*) FILTER (WHERE status = 'finished') as completed_campaigns,\n                    COUNT(*) FILTER (WHERE status = 'cancelled') as failed_campaigns,\n                    SUM(sent) as total_emails_sent_unique,\n                    (\n                        SELECT COALESCE(SUM(c.sent * list_recipients.recipient_count), 0)\n                        FROM campaigns c\n                        LEFT JOIN (\n                            SELECT cl.campaign_id, COUNT(sl.subscriber_id) as recipient_count\n                            FROM campaign_lists cl\n                            JOIN subscriber_lists sl ON cl.list_id = sl.list_id\n                            WHERE sl.status = 'confirmed'\n                            GROUP BY cl.campaign_id\n                        ) list_recipients ON c.id = list_recipients.campaign_id\n                    ) as total_emails_sent\n                FROM campaigns\n            ),\n            list_stats AS (\n                SELECT \n                    COUNT(*) as total_lists,\n                    COUNT(*) FILTER (WHERE type = 'public') as active_lists,\n                    AVG(subscriber_count) as avg_list_size,\n                    MAX(subscriber_count) as max_list_size\n                FROM (\n                    SELECT l.id, l.type, COUNT(sl.subscriber_id) as subscriber_count\n                    FROM lists l\n                    LEFT JOIN subscriber_lists sl ON l.id = sl.list_id\n                    GROUP BY l.id, l.type\n                ) list_counts\n            ),\n            engagement_stats AS (\n                SELECT \n                    COUNT(*) as total_opens,\n                    COUNT(*) FILTER (WHERE DATE(opened_at) = CURRENT_DATE) as opens_today,\n                    COUNT(*) FILTER (WHERE opened_at >= CURRENT_DATE - INTERVAL '7 days') as opens_this_week,\n                    COUNT(*) FILTER (WHERE opened_at >= DATE_TRUNC('month', CURRENT_DATE)) as opens_this_month,\n                    AVG(campaign_opens) as avg_opens_per_campaign\n                FROM email_views ev\n                CROSS JOIN (\n                    SELECT campaign_id, COUNT(*) as campaign_opens\n                    FROM email_views\n                    GROUP BY campaign_id\n                ) campaign_opens\n            ),\n            unsubscribe_stats AS (\n                SELECT COUNT(*) as unsubscribes_this_month\n                FROM subscriber_lists\n                WHERE status = 'unsubscribed'\n                AND updated_at >= DATE_TRUNC('month', CURRENT_DATE)\n            )\n            SELECT \n                s.total_subscribers, s.active_subscribers, s.new_today, s.new_this_week, s.new_this_month,\n                c.total_campaigns, c.last_30_days, c.active_campaigns, c.completed_campaigns, \n                c.failed_campaigns, c.total_emails_sent_unique, c.total_emails_sent,\n                l.total_lists, l.active_lists, l.avg_list_size, l.max_list_size,\n                e.total_opens, e.opens_today, e.opens_this_week, e.opens_this_month, \n                e.avg_opens_per_campaign,\n                u.unsubscribes_this_month\n            FROM subscriber_stats s\n            CROSS JOIN campaign_stats c\n            CROSS JOIN list_stats l\n            CROSS JOIN engagement_stats e\n            CROSS JOIN unsubscribe_stats u\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total_subscribers",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "active_subscribers",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "new_today",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "new_this_week",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "new_this_month",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "total_campaigns",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "last_30_days",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "active_campaigns",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "completed_campaigns",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "failed_campaigns",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "total_emails_sent_unique",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "total_emails_sent",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "total_lists",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "active_lists",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "avg_list_size",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 15,
+        "name": "max_list_size",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 16,
+        "name": "total_opens",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 17,
+        "name": "opens_today",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 18,
+        "name": "opens_this_week",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 19,
+        "name": "opens_this_month",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 20,
+        "name": "avg_opens_per_campaign",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 21,
+        "name": "unsubscribes_this_month",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a241fb580497b804f76088dcfdc21dfb3be2accd6f615ff4700a3fdba5b095e1"
+}

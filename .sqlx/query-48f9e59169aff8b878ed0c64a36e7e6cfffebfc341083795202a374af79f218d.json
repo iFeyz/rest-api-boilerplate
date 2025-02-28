@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                s.id as subscriber_id,\n                s.email\n            FROM subscribers s\n            JOIN campaign_lists cl ON cl.campaign_id = $1\n            JOIN subscriber_lists sl ON sl.list_id = cl.list_id AND sl.subscriber_id = s.id\n            WHERE NOT EXISTS (\n                SELECT 1 \n                FROM email_views ev \n                WHERE ev.campaign_id = $1 \n                AND ev.subscriber_id = s.id\n            )\n            AND sl.status = 'confirmed'\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "subscriber_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "48f9e59169aff8b878ed0c64a36e7e6cfffebfc341083795202a374af79f218d"
+}

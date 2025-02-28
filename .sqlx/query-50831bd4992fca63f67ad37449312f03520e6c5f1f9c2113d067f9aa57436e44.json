@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH total_opens AS (\n                SELECT COUNT(DISTINCT ev.id) as total\n                FROM email_views ev\n                JOIN sequence_emails se ON ev.sequence_email_id = se.id\n                WHERE se.campaign_id = $1\n            )\n            SELECT \n                COALESCE(ev.city, 'Unknown') as \"city!\",\n                COALESCE(ev.country, 'Unknown') as \"country!\",\n                COUNT(ev.id) as \"total_opens!\",\n                COUNT(DISTINCT ev.subscriber_id) as \"unique_opens!\",\n                CASE \n                    WHEN (SELECT total FROM total_opens) > 0 \n                    THEN (CAST(COUNT(ev.id) AS float8) / CAST((SELECT total FROM total_opens) AS float8) * 100.0)\n                    ELSE 0.0 \n                END as \"percentage!: f64\"\n            FROM email_views ev\n            JOIN sequence_emails se ON ev.sequence_email_id = se.id\n            WHERE se.campaign_id = $1\n            GROUP BY ev.city, ev.country\n            ORDER BY COUNT(ev.id) DESC\n            LIMIT 10\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "city!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "country!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "total_opens!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "unique_opens!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "percentage!: f64",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "50831bd4992fca63f67ad37449312f03520e6c5f1f9c2113d067f9aa57436e44"
+}

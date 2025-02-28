@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE campaign_lists\n            SET list_name = CASE \n                WHEN $3::text IS NOT NULL THEN $3\n                ELSE list_name\n            END\n            WHERE campaign_id = $1 AND list_id = $2\n            RETURNING id as \"id!: i32\",\n                      campaign_id as \"campaign_id!: i32\",\n                      list_id as \"list_id!: i32\",\n                      list_name as \"list_name!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "campaign_id!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "list_id!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "list_name!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "7688b44f0e12982ce6f07acffbeb75739c972ea16191a903bdb754b94d9b3c23"
+}

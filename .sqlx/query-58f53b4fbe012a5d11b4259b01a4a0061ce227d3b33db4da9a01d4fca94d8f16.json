@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH subscriber_count AS (\n                SELECT COUNT(DISTINCT sl.subscriber_id) as total_subscribers\n                FROM campaign_lists cl\n                JOIN subscriber_lists sl ON cl.list_id = sl.list_id\n                WHERE cl.campaign_id = $1 AND sl.status = 'confirmed'\n            )\n            SELECT \n                se.id as \"sequence_email_id!\",\n                se.campaign_id as \"campaign_id!\",\n                se.position as \"position!\",\n                se.subject as \"subject!\",\n                se.status as \"status!: String\",\n                se.send_at as sent_at,\n                (SELECT total_subscribers FROM subscriber_count) as \"total_subscribers!\",\n                COUNT(ev.id) as \"total_opens!\",\n                COUNT(DISTINCT ev.subscriber_id) as \"unique_opens!\"\n            FROM sequence_emails se\n            LEFT JOIN email_views ev ON se.id = ev.sequence_email_id\n            WHERE se.campaign_id = $1 AND se.id = $2\n            GROUP BY se.id, se.campaign_id, se.position, se.subject, se.status, se.send_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sequence_email_id!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "campaign_id!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "position!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "subject!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "status!: String",
+        "type_info": {
+          "Custom": {
+            "name": "sequence_email_status",
+            "kind": {
+              "Enum": [
+                "draft",
+                "sending",
+                "sent",
+                "failed"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "sent_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "total_subscribers!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "total_opens!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "unique_opens!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "58f53b4fbe012a5d11b4259b01a4a0061ce227d3b33db4da9a01d4fca94d8f16"
+}

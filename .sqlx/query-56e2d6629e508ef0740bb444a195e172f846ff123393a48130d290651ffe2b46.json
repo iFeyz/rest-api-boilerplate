@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT COUNT(DISTINCT s.id)::bigint\n            FROM subscribers s\n            JOIN subscriber_lists sl ON s.id = sl.subscriber_id\n            WHERE sl.list_id = ANY($1)\n            AND sl.status = 'confirmed'\n            AND s.status = 'enabled'\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4Array"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "56e2d6629e508ef0740bb444a195e172f846ff123393a48130d290651ffe2b46"
+}

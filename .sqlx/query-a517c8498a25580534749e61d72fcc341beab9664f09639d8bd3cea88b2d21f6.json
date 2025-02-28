@@ -1,0 +1,220 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE campaigns\n            SET \n                name = CASE WHEN $1::text IS NOT NULL THEN $1 ELSE name END,\n                subject = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE subject END,\n                from_email = CASE WHEN $3::text IS NOT NULL THEN $3 ELSE from_email END,\n                status = CASE WHEN $4::campaign_status IS NOT NULL THEN $4 ELSE status END,\n                campaign_type = CASE WHEN $5::campaign_type IS NOT NULL THEN $5 ELSE campaign_type END,\n                tags = CASE WHEN $6::text[] IS NOT NULL THEN $6 ELSE tags END,\n                messenger = CASE WHEN $7::text IS NOT NULL THEN $7 ELSE messenger END,\n                headers = CASE WHEN $8::jsonb IS NOT NULL THEN $8 ELSE headers END,\n                to_send = CASE WHEN $9::int4 IS NOT NULL THEN $9 ELSE to_send END,\n                sent = CASE WHEN $10::int4 IS NOT NULL THEN $10 ELSE sent END,\n                max_subscriber_id = CASE WHEN $11::int4 IS NOT NULL THEN $11 ELSE max_subscriber_id END,\n                last_subscriber_id = CASE WHEN $12::int4 IS NOT NULL THEN $12 ELSE last_subscriber_id END,\n                archive = CASE WHEN $13::boolean IS NOT NULL THEN $13 ELSE archive END,\n                archive_slug = CASE WHEN $14::text IS NOT NULL THEN $14 ELSE archive_slug END,\n                archive_template_id = CASE WHEN $15::int4 IS NOT NULL THEN $15 ELSE archive_template_id END,\n                archive_meta = CASE WHEN $16::jsonb IS NOT NULL THEN $16 ELSE archive_meta END,\n                sequence_start_date = CASE WHEN $17::timestamptz IS NOT NULL THEN $17 ELSE sequence_start_date END,\n                sequence_end_date = CASE WHEN $18::timestamptz IS NOT NULL THEN $18 ELSE sequence_end_date END\n            WHERE id = $19\n            RETURNING \n                id, uuid, \n                name as \"name!\", \n                subject as \"subject!\", \n                from_email as \"from_email!\", \n                status as \"status!: CampaignStatus\",\n                campaign_type as \"campaign_type!: CampaignType\",\n                tags,\n                messenger as \"messenger!\",\n                headers as \"headers!\",\n                to_send as \"to_send!\",\n                sent as \"sent!\",\n                max_subscriber_id as \"max_subscriber_id!\",\n                last_subscriber_id as \"last_subscriber_id!\",\n                archive as \"archive!\",\n                archive_slug,\n                archive_template_id,\n                archive_meta as \"archive_meta!\",\n                started_at,\n                created_at,\n                updated_at,\n                sequence_start_date,\n                sequence_end_date\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "subject!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "from_email!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "status!: CampaignStatus",
+        "type_info": {
+          "Custom": {
+            "name": "campaign_status",
+            "kind": {
+              "Enum": [
+                "draft",
+                "running",
+                "scheduled",
+                "paused",
+                "cancelled",
+                "finished"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "campaign_type!: CampaignType",
+        "type_info": {
+          "Custom": {
+            "name": "campaign_type",
+            "kind": {
+              "Enum": [
+                "regular",
+                "optin"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "tags",
+        "type_info": "VarcharArray"
+      },
+      {
+        "ordinal": 8,
+        "name": "messenger!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "headers!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 10,
+        "name": "to_send!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "sent!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 12,
+        "name": "max_subscriber_id!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "last_subscriber_id!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "archive!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "archive_slug",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "archive_template_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 17,
+        "name": "archive_meta!",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 18,
+        "name": "started_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 19,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 20,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 21,
+        "name": "sequence_start_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 22,
+        "name": "sequence_end_date",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "campaign_status",
+            "kind": {
+              "Enum": [
+                "draft",
+                "running",
+                "scheduled",
+                "paused",
+                "cancelled",
+                "finished"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "campaign_type",
+            "kind": {
+              "Enum": [
+                "regular",
+                "optin"
+              ]
+            }
+          }
+        },
+        "TextArray",
+        "Text",
+        "Jsonb",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Bool",
+        "Text",
+        "Int4",
+        "Jsonb",
+        "Timestamptz",
+        "Timestamptz",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "a517c8498a25580534749e61d72fcc341beab9664f09639d8bd3cea88b2d21f6"
+}
