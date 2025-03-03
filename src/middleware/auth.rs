@@ -54,7 +54,8 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         // Liste des routes qui ne nécessitent pas d'authentification
         let public_paths = vec![
-            "/api/email_views/",  // Ajout de la nouvelle route
+            "/api/email-views/",
+            "/api/email-views",
             "/health",
             "/metrics",
         ];
