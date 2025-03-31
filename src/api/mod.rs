@@ -11,7 +11,7 @@ pub mod sequence_email;
 pub mod users;
 pub mod auth;
 pub mod tasks;
-
+pub mod subscriber_sequence;
 use actix_web::web;
 use std::sync::Arc;
 use crate::monitoring::Metrics;
@@ -31,6 +31,7 @@ pub fn config(cfg: &mut web::ServiceConfig, metrics: Arc<Metrics>) {
     cfg.service(auth::config(metrics.clone()));
     cfg.service(tasks::config(metrics.clone()));
     cfg.configure(send_email::configure(metrics.clone()));
+    cfg.service(subscriber_sequence::config(metrics.clone()));
 }
 
 

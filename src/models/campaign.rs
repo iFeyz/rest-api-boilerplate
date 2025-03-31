@@ -59,12 +59,13 @@ impl Default for CampaignStatus {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]
 #[sqlx(type_name = "campaign_type", rename_all = "snake_case")]
 pub enum CampaignType {
     Regular,
     Automated,
     Sequence,
+    Optin,
 }
 
 impl fmt::Display for CampaignType {
@@ -73,6 +74,7 @@ impl fmt::Display for CampaignType {
             CampaignType::Regular => write!(f, "regular"),
             CampaignType::Automated => write!(f, "automated"),
             CampaignType::Sequence => write!(f, "sequence"),
+            CampaignType::Optin => write!(f, "optin"),
         }
     }
 }

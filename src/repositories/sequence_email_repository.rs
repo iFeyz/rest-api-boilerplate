@@ -22,6 +22,10 @@ impl SequenceEmailRepository {
         Self { pool }
     }
 
+    pub fn pool(&self) -> &PgPool {
+        &self.pool
+    }
+
     pub async fn create(&self, dto: CreateSequenceEmailDto) -> Result<SequenceEmail, ApiError> {
         let sequence_email = sqlx::query_as!(
             SequenceEmail,
@@ -37,6 +41,9 @@ impl SequenceEmailRepository {
                 is_active,
                 send_at,
                 status,
+                delay_type,
+                delay_value,
+                delay_unit,
                 created_at,
                 updated_at
             )
@@ -51,6 +58,9 @@ impl SequenceEmailRepository {
                 $8, 
                 $9, 
                 'draft'::sequence_email_status,
+                $10,
+                $11,
+                $12,
                 CURRENT_TIMESTAMP, 
                 CURRENT_TIMESTAMP
             )
@@ -66,6 +76,9 @@ impl SequenceEmailRepository {
                 metadata as "metadata!: JsonValue",
                 is_active as "is_active!: bool",
                 send_at as "send_at?: DateTime<Utc>",
+                delay_type as "delay_type!: String",
+                delay_value as "delay_value?: i32",
+                delay_unit as "delay_unit?: String",
                 created_at as "created_at!: DateTime<Utc>",
                 updated_at as "updated_at!: DateTime<Utc>"
             "#,
@@ -77,7 +90,10 @@ impl SequenceEmailRepository {
             dto.content_type as _,
             dto.metadata,
             dto.is_active,
-            dto.send_at
+            dto.send_at,
+            dto.delay_type,
+            dto.delay_value,
+            dto.delay_unit
         )
         .fetch_one(&self.pool)
         .await?;
@@ -86,7 +102,8 @@ impl SequenceEmailRepository {
     }
 
     pub async fn find_all(&self, dto: PaginationDto) -> Result<Vec<SequenceEmail>, ApiError> {
-        let offset = (dto.page - 1) * dto.per_page;
+        let offset = (dto.page.unwrap_or(1) - 1) * dto.limit.unwrap_or(10);
+        let limit = dto.limit.unwrap_or(10);
 
         let sequence_emails = sqlx::query_as!(
             SequenceEmail,
@@ -103,15 +120,16 @@ impl SequenceEmailRepository {
                 metadata as "metadata!: JsonValue",
                 is_active as "is_active!: bool",
                 send_at as "send_at?: DateTime<Utc>",
+                delay_type as "delay_type!: String",
+                delay_value as "delay_value?: i32",
+                delay_unit as "delay_unit?: String",
                 created_at as "created_at!: DateTime<Utc>",
                 updated_at as "updated_at!: DateTime<Utc>"
             FROM sequence_emails
-            WHERE campaign_id = $1
-            ORDER BY id DESC
-            LIMIT $2 OFFSET $3
+            ORDER BY created_at DESC
+            LIMIT $1 OFFSET $2
             "#,
-            dto.campaign_id,
-            dto.per_page,
+            limit,
             offset
         )
         .fetch_all(&self.pool)
@@ -133,6 +151,9 @@ impl SequenceEmailRepository {
                 metadata = COALESCE($6, metadata),
                 is_active = COALESCE($7, is_active),
                 send_at = $8,
+                delay_type = COALESCE($9, delay_type),
+                delay_value = COALESCE($10, delay_value),
+                delay_unit = COALESCE($11, delay_unit),
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = $1
             RETURNING 
@@ -147,6 +168,9 @@ impl SequenceEmailRepository {
                 metadata as "metadata!: JsonValue",
                 is_active as "is_active!: bool",
                 send_at as "send_at?: DateTime<Utc>",
+                delay_type as "delay_type!: String",
+                delay_value as "delay_value?: i32",
+                delay_unit as "delay_unit?: String",
                 created_at as "created_at!: DateTime<Utc>",
                 updated_at as "updated_at!: DateTime<Utc>"
             "#,
@@ -157,7 +181,10 @@ impl SequenceEmailRepository {
             dto.content_type as _,
             dto.metadata,
             dto.is_active,
-            dto.send_at
+            dto.send_at,
+            dto.delay_type,
+            dto.delay_value,
+            dto.delay_unit
         )
         .fetch_optional(&self.pool)
         .await?;
@@ -192,6 +219,9 @@ impl SequenceEmailRepository {
                 metadata as "metadata!: JsonValue",
                 is_active as "is_active!: bool",
                 send_at as "send_at?: DateTime<Utc>",
+                delay_type as "delay_type!: String",
+                delay_value as "delay_value?: i32",
+                delay_unit as "delay_unit?: String",
                 created_at as "created_at!: DateTime<Utc>",
                 updated_at as "updated_at!: DateTime<Utc>"
             FROM sequence_emails
@@ -225,6 +255,9 @@ impl SequenceEmailRepository {
                 metadata as "metadata!: JsonValue",
                 is_active as "is_active!: bool",
                 send_at as "send_at?: DateTime<Utc>",
+                delay_type as "delay_type!: String",
+                delay_value as "delay_value?: i32",
+                delay_unit as "delay_unit?: String",
                 created_at as "created_at!: DateTime<Utc>",
                 updated_at as "updated_at!: DateTime<Utc>"
             FROM sequence_emails
@@ -260,5 +293,38 @@ impl SequenceEmailRepository {
         .map_err(ApiError::DatabaseError)?;
 
         Ok(())
+    }
+
+    pub async fn find_by_campaign_id(&self, campaign_id: i32) -> Result<Vec<SequenceEmail>, ApiError> {
+        let sequence_email = sqlx::query_as!(
+            SequenceEmail,
+            r#"
+            SELECT 
+                id as "id!: i32",
+                campaign_id as "campaign_id!: i32",
+                position as "position!: i32",
+                subject as "subject!: String",
+                body as "body!: String",
+                template_id as "template_id?: i32",
+                content_type as "content_type!: _",
+                status as "status!: _",
+                metadata as "metadata!: JsonValue",
+                is_active as "is_active!: bool",
+                send_at as "send_at?: DateTime<Utc>",
+                delay_type as "delay_type!: String",
+                delay_value as "delay_value?: i32",
+                delay_unit as "delay_unit?: String",
+                created_at as "created_at!: DateTime<Utc>",
+                updated_at as "updated_at!: DateTime<Utc>"
+            FROM sequence_emails
+            WHERE campaign_id = $1
+            ORDER BY position
+            "#,
+            campaign_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(sequence_email)
     }
 } 

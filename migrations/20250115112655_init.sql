@@ -248,3 +248,36 @@ CREATE INDEX idx_email_views_location ON email_views(country, city);
 -- Ensure no duplicate entries for the same subscriber_id, sequence_email_id, and campaign_id
 ALTER TABLE email_views
 ADD CONSTRAINT unique_subscriber_sequence_campaign UNIQUE (subscriber_id, sequence_email_id, campaign_id);
+
+-- Migration pour supporter les séquences d'emails opt-in avec délais relatifs
+
+-- Modifier sequence_emails pour gérer différents types de délais
+ALTER TABLE sequence_emails 
+ADD COLUMN delay_type VARCHAR(20) NOT NULL DEFAULT 'absolute' 
+    CHECK (delay_type IN ('absolute', 'after_join', 'after_previous')),
+ADD COLUMN delay_value INTEGER NULL,
+ADD COLUMN delay_unit VARCHAR(10) NULL CHECK (delay_unit IN ('minutes', 'hours', 'days'));
+
+-- Table pour suivre la progression des abonnés dans les séquences
+CREATE TABLE subscriber_sequence_progress (
+    id SERIAL PRIMARY KEY,
+    subscriber_id INTEGER REFERENCES subscribers(id) ON DELETE CASCADE,
+    campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE,
+    list_id INTEGER REFERENCES lists(id) ON DELETE CASCADE,
+    joined_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    current_position INTEGER NOT NULL DEFAULT 0,
+    last_email_sent_at TIMESTAMP WITH TIME ZONE NULL,
+    next_email_scheduled_at TIMESTAMP WITH TIME ZONE NULL,
+    completed BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    UNIQUE(subscriber_id, campaign_id)
+);
+
+-- Créer un index pour améliorer les performances des requêtes
+CREATE INDEX idx_sub_seq_progress_next_send ON subscriber_sequence_progress(next_email_scheduled_at)
+WHERE next_email_scheduled_at IS NOT NULL AND completed = false;
+
+CREATE INDEX idx_sub_seq_progress_subscriber ON subscriber_sequence_progress(subscriber_id);
+CREATE INDEX idx_sub_seq_progress_campaign ON subscriber_sequence_progress(campaign_id);

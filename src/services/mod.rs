@@ -8,3 +8,4 @@ pub mod email_views_service;
 pub mod sequence_email_service;
 pub mod campaign_stats_service;
 pub mod global_stats_service;
+pub mod sequence_optin_service;

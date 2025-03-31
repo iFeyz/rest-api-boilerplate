@@ -12,8 +12,6 @@ use std::sync::Arc;
 use crate::middleware::auth::AuthMiddleware;     
 use tokio_cron_scheduler::{Job, JobScheduler};
 use api_boilerplate::email_service::EmailService;
-use api_boilerplate::repositories::sequence_email_repository::SequenceEmailRepository;
-use api_boilerplate::services::sequence_email_service::SequenceEmailService;
 use api_boilerplate::models::sequence_email::SequenceEmailStatus;
 use actix_cors::Cors;
 use actix_web_prom::PrometheusMetricsBuilder;
@@ -33,6 +31,8 @@ use api_boilerplate::{
         email_views_repository::EmailViewsRepository,
         campaign_stats_repository::CampaignStatsRepository,
         global_stats_repository::GlobalStatsRepository,
+        sequence_email_repository::SequenceEmailRepository,
+        subscriber_sequence_progress_repository::SubscriberSequenceProgressRepository,
     },
     services::{
         subscriber_service::SubscriberService,
@@ -42,8 +42,10 @@ use api_boilerplate::{
         campaign_service::CampaignService,
         campaign_list_service::CampaignListService,
         email_views_service::EmailViewsService,
+        sequence_email_service::SequenceEmailService,
         campaign_stats_service::CampaignStatsService,
         global_stats_service::GlobalStatsService,
+        sequence_optin_service::SequenceOptinService,
     },
 };
 
@@ -194,6 +196,33 @@ async fn setup_campaign_scheduler(
     Ok(scheduler)
 }
 
+async fn setup_sequence_scheduler(
+    sequence_service: web::Data<SequenceOptinService>,
+) -> Result<JobScheduler, Box<dyn std::error::Error>> {
+    let scheduler = JobScheduler::new().await?;
+
+    // Vérifier les séquences d'emails à envoyer toutes les minutes
+    scheduler.add(Job::new_async("0 * * * * *", move |_, _| {
+        let sequence_service = sequence_service.clone();
+        
+        Box::pin(async move {
+            match sequence_service.process_pending_sequence_emails().await {
+                Ok(count) => {
+                    if count > 0 {
+                        tracing::info!("Processed {} sequence emails", count);
+                    }
+                },
+                Err(e) => {
+                    tracing::error!("Failed to process sequence emails: {}", e);
+                }
+            }
+        })
+    })?).await?;
+
+    scheduler.start().await?;
+    Ok(scheduler)
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
@@ -249,9 +278,13 @@ async fn main() -> std::io::Result<()> {
     let sequence_email_repository = Arc::new(SequenceEmailRepository::new(pool.clone()));
     let campaign_stats_repository = Arc::new(CampaignStatsRepository::new(pool.clone()));
     let global_stats_repository = Arc::new(GlobalStatsRepository::new(pool.clone()));
+    let subscriber_sequence_progress_repository = Arc::new(SubscriberSequenceProgressRepository::new(pool.clone()));
 
     // Now wrap the pool for web usage
     let pool = web::Data::new(pool);
+
+    // Setup email service
+    let email_service = setup_email_service().await;
 
     // Create services directly without Arc wrapping
     let email_views_service = EmailViewsService::new(EmailViewsRepository::new(pool.get_ref().clone()));
@@ -264,9 +297,12 @@ async fn main() -> std::io::Result<()> {
     let sequence_email_service = SequenceEmailService::new(SequenceEmailRepository::new(pool.get_ref().clone()));
     let campaign_stats_service = CampaignStatsService::new(web::Data::new(CampaignStatsRepository::new(pool.get_ref().clone())));
     let global_stats_service = GlobalStatsService::new(GlobalStatsRepository::new(pool.get_ref().clone()));
-
-    // Setup email service
-    let email_service = setup_email_service().await;
+    
+    // Create SequenceOptinService with the correct arguments
+    let sequence_optin_service = SequenceOptinService::new(
+        pool.get_ref().clone(),
+        email_service.clone()
+    );
 
     // Wrap services in web::Data for the HTTP server - only one layer of wrapping
     let email_views_service_data = web::Data::new(email_views_service);
@@ -280,6 +316,7 @@ async fn main() -> std::io::Result<()> {
     let campaign_stats_service_data = web::Data::new(campaign_stats_service);
     let global_stats_service_data = web::Data::new(global_stats_service);
     let email_service_data = web::Data::new(email_service.clone());
+    let sequence_optin_service_data = web::Data::new(sequence_optin_service);
 
     // Setup GeoIP reader
     let geoip_reader = Reader::open_readfile("GeoIP2-City.mmdb")
@@ -293,19 +330,34 @@ async fn main() -> std::io::Result<()> {
         pool.clone(),
         web::Data::new(SequenceEmailRepository::new(pool.get_ref().clone())),
     ).await {
-        error!("Failed to setup scheduler: {}", e);
+        error!("Failed to setup campaign scheduler: {}", e);
+    } else {
+        info!("✅ Campaign scheduler setup successfully");
+    }
+
+    // Setup the sequence scheduler
+    if let Err(e) = setup_sequence_scheduler(
+        sequence_optin_service_data.clone()
+    ).await {
+        error!("Failed to setup sequence scheduler: {}", e);
     }
 
     // Add this after setting up email_service in main()
-    info!("Testing email service...");
+    info!("Testing email service connection...");
+    let smtp_host = std::env::var("SMTP_HOST").expect("SMTP_HOST must be set");
+    let smtp_username = std::env::var("SMTP_USERNAME").expect("SMTP_USERNAME must be set");
+    let from_email = std::env::var("FROM_EMAIL").expect("FROM_EMAIL must be set");
+
+    info!("SMTP Configuration: host={}, username={}, from={}", smtp_host, smtp_username, from_email);
+
     if let Err(e) = email_service.send_email(
         "your.test@email.com",
-        "Test Email",
-        "This is a test email"
+        "Test Email Connection",
+        "<h1>SMTP Test</h1><p>This is a test email to verify SMTP connection is working.</p>"
     ).await {
-        error!("Failed to send test email: {}", e);
+        error!("Failed to send test email: {:?}", e);
     } else {
-        info!("Test email sent successfully");
+        info!("✅ SMTP test email sent successfully");
     }
 
     // Configurer le middleware Prometheus avec le registre de métriques
@@ -353,6 +405,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(campaign_list_service_data.clone())
             .app_data(email_service_data.clone())
             .app_data(sequence_email_service_data.clone())
+            .app_data(sequence_optin_service_data.clone())
             .app_data(campaign_stats_service_data.clone())
             .app_data(geoip_reader_data.clone())
             .app_data(global_stats_service_data.clone())
