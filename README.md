@@ -1,2 +1,2 @@
 # Mailer 
-test 5
+test 10
