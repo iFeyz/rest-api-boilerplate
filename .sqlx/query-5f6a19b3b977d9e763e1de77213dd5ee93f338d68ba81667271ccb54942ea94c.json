@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                cl.id as \"id!: i32\",\n                cl.campaign_id as \"campaign_id!: i32\",\n                cl.list_id as \"list_id!: i32\",\n                COALESCE(l.name, cl.list_name) as \"list_name!\"\n            FROM campaign_lists cl\n            LEFT JOIN lists l ON cl.list_id = l.id\n            WHERE cl.list_id = $1\n            ORDER BY cl.id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!: i32",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "campaign_id!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "list_id!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "list_name!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "5f6a19b3b977d9e763e1de77213dd5ee93f338d68ba81667271ccb54942ea94c"
+}

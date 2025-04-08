@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                id as \"id!: i32\",\n                campaign_id as \"campaign_id!: i32\",\n                position as \"position!: i32\",\n                subject as \"subject!: String\",\n                body as \"body!: String\",\n                template_id as \"template_id?: i32\",\n                content_type as \"content_type!: _\",\n                status as \"status!: _\",\n                metadata as \"metadata!: JsonValue\",\n                is_active as \"is_active!: bool\",\n                send_at as \"send_at?: DateTime<Utc>\",\n                created_at as \"created_at!: DateTime<Utc>\",\n                updated_at as \"updated_at!: DateTime<Utc>\"\n            FROM sequence_emails\n            WHERE is_active = true\n            AND send_at <= NOW()\n            AND status = 'draft'\n            AND NOT EXISTS (\n                SELECT 1 FROM email_views \n                WHERE email_views.sequence_email_id = sequence_emails.id\n            )\n            ORDER BY campaign_id, position ASC\n            ",
+  "query": "\n            SELECT \n                id as \"id!: i32\",\n                campaign_id as \"campaign_id!: i32\",\n                position as \"position!: i32\",\n                subject as \"subject!: String\",\n                body as \"body!: String\",\n                template_id as \"template_id?: i32\",\n                content_type as \"content_type!: _\",\n                status as \"status!: _\",\n                metadata as \"metadata!: JsonValue\",\n                is_active as \"is_active!: bool\",\n                send_at as \"send_at?: DateTime<Utc>\",\n                delay_type as \"delay_type!: String\",\n                delay_value as \"delay_value?: i32\",\n                delay_unit as \"delay_unit?: String\",\n                created_at as \"created_at!: DateTime<Utc>\",\n                updated_at as \"updated_at!: DateTime<Utc>\"\n            FROM sequence_emails\n            WHERE is_active = true\n            AND send_at <= NOW()\n            AND status = 'draft'\n            AND NOT EXISTS (\n                SELECT 1 FROM email_views \n                WHERE email_views.sequence_email_id = sequence_emails.id\n            )\n            ORDER BY campaign_id, position ASC\n            ",
   "describe": {
     "columns": [
       {
@@ -84,11 +84,26 @@
       },
       {
         "ordinal": 11,
+        "name": "delay_type!: String",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "delay_value?: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "delay_unit?: String",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 14,
         "name": "created_at!: DateTime<Utc>",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 12,
+        "ordinal": 15,
         "name": "updated_at!: DateTime<Utc>",
         "type_info": "Timestamptz"
       }
@@ -108,9 +123,12 @@
       true,
       true,
       true,
+      false,
+      true,
+      true,
       true,
       true
     ]
   },
-  "hash": "cf12d77dc7fc2ce1427d5e2fd00ba85329433ca35bc9c79f6dbf8a7f91e5ce6f"
+  "hash": "77c5467d0368d1213b29b63479ce1e593c8e5be5dcd242bb2628a069e0ba05cd"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO sequence_emails (\n                campaign_id, \n                position, \n                subject, \n                body, \n                template_id, \n                content_type, \n                metadata, \n                is_active,\n                send_at,\n                status,\n                created_at,\n                updated_at\n            )\n            VALUES (\n                $1, \n                $2, \n                $3, \n                $4, \n                $5, \n                $6::content_type, \n                $7, \n                $8, \n                $9, \n                'draft'::sequence_email_status,\n                CURRENT_TIMESTAMP, \n                CURRENT_TIMESTAMP\n            )\n            RETURNING \n                id as \"id!: i32\",\n                campaign_id as \"campaign_id!: i32\",\n                position as \"position!: i32\",\n                subject as \"subject!: String\",\n                body as \"body!: String\",\n                template_id as \"template_id?: i32\",\n                content_type as \"content_type!: _\",\n                status as \"status!: _\",\n                metadata as \"metadata!: JsonValue\",\n                is_active as \"is_active!: bool\",\n                send_at as \"send_at?: DateTime<Utc>\",\n                created_at as \"created_at!: DateTime<Utc>\",\n                updated_at as \"updated_at!: DateTime<Utc>\"\n            ",
+  "query": "\n            UPDATE sequence_emails\n            SET \n                subject = COALESCE($2, subject),\n                body = COALESCE($3, body),\n                template_id = COALESCE($4, template_id),\n                content_type = COALESCE($5::content_type, content_type),\n                metadata = COALESCE($6, metadata),\n                is_active = COALESCE($7, is_active),\n                send_at = $8,\n                delay_type = COALESCE($9, delay_type),\n                delay_value = COALESCE($10, delay_value),\n                delay_unit = COALESCE($11, delay_unit),\n                updated_at = CURRENT_TIMESTAMP\n            WHERE id = $1\n            RETURNING \n                id as \"id!: i32\",\n                campaign_id as \"campaign_id!: i32\",\n                position as \"position!: i32\",\n                subject as \"subject!: String\",\n                body as \"body!: String\",\n                template_id as \"template_id?: i32\",\n                content_type as \"content_type!: _\",\n                status as \"status!: _\",\n                metadata as \"metadata!: JsonValue\",\n                is_active as \"is_active!: bool\",\n                send_at as \"send_at?: DateTime<Utc>\",\n                delay_type as \"delay_type!: String\",\n                delay_value as \"delay_value?: i32\",\n                delay_unit as \"delay_unit?: String\",\n                created_at as \"created_at!: DateTime<Utc>\",\n                updated_at as \"updated_at!: DateTime<Utc>\"\n            ",
   "describe": {
     "columns": [
       {
@@ -84,18 +84,32 @@
       },
       {
         "ordinal": 11,
+        "name": "delay_type!: String",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "delay_value?: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "delay_unit?: String",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 14,
         "name": "created_at!: DateTime<Utc>",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 12,
+        "ordinal": 15,
         "name": "updated_at!: DateTime<Utc>",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Int4",
         "Int4",
         "Text",
         "Text",
@@ -115,7 +129,10 @@
         },
         "Jsonb",
         "Bool",
-        "Timestamptz"
+        "Timestamptz",
+        "Varchar",
+        "Int4",
+        "Varchar"
       ]
     },
     "nullable": [
@@ -130,9 +147,12 @@
       true,
       true,
       true,
+      false,
+      true,
+      true,
       true,
       true
     ]
   },
-  "hash": "266684b3a4cc371c668ce0b745af5f2a05cb77a98b6b9ab4c05092caafeb97b8"
+  "hash": "4b0514968065772977baf1b1c138b93589c4a838ac0cbcbd754fd0d8c8ef9ffd"
 }

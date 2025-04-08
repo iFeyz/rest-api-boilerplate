@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE sequence_emails\n            SET \n                subject = COALESCE($2, subject),\n                body = COALESCE($3, body),\n                template_id = COALESCE($4, template_id),\n                content_type = COALESCE($5::content_type, content_type),\n                metadata = COALESCE($6, metadata),\n                is_active = COALESCE($7, is_active),\n                send_at = $8,\n                updated_at = CURRENT_TIMESTAMP\n            WHERE id = $1\n            RETURNING \n                id as \"id!: i32\",\n                campaign_id as \"campaign_id!: i32\",\n                position as \"position!: i32\",\n                subject as \"subject!: String\",\n                body as \"body!: String\",\n                template_id as \"template_id?: i32\",\n                content_type as \"content_type!: _\",\n                status as \"status!: _\",\n                metadata as \"metadata!: JsonValue\",\n                is_active as \"is_active!: bool\",\n                send_at as \"send_at?: DateTime<Utc>\",\n                created_at as \"created_at!: DateTime<Utc>\",\n                updated_at as \"updated_at!: DateTime<Utc>\"\n            ",
+  "query": "\n            SELECT \n                id as \"id!: i32\",\n                campaign_id as \"campaign_id!: i32\",\n                position as \"position!: i32\",\n                subject as \"subject!: String\",\n                body as \"body!: String\",\n                template_id as \"template_id?: i32\",\n                content_type as \"content_type!: _\",\n                status as \"status!: _\",\n                metadata as \"metadata!: JsonValue\",\n                is_active as \"is_active!: bool\",\n                send_at as \"send_at?: DateTime<Utc>\",\n                delay_type as \"delay_type!: String\",\n                delay_value as \"delay_value?: i32\",\n                delay_unit as \"delay_unit?: String\",\n                created_at as \"created_at!: DateTime<Utc>\",\n                updated_at as \"updated_at!: DateTime<Utc>\"\n            FROM sequence_emails\n            WHERE campaign_id = $1\n            AND is_active = true\n            AND (send_at IS NULL OR send_at <= NOW())\n            ORDER BY position ASC\n            LIMIT 1\n            ",
   "describe": {
     "columns": [
       {
@@ -84,37 +84,33 @@
       },
       {
         "ordinal": 11,
+        "name": "delay_type!: String",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "delay_value?: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "delay_unit?: String",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 14,
         "name": "created_at!: DateTime<Utc>",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 12,
+        "ordinal": 15,
         "name": "updated_at!: DateTime<Utc>",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Int4",
-        "Text",
-        "Text",
-        "Int4",
-        {
-          "Custom": {
-            "name": "content_type",
-            "kind": {
-              "Enum": [
-                "richtext",
-                "html",
-                "plain",
-                "markdown"
-              ]
-            }
-          }
-        },
-        "Jsonb",
-        "Bool",
-        "Timestamptz"
+        "Int4"
       ]
     },
     "nullable": [
@@ -129,9 +125,12 @@
       true,
       true,
       true,
+      false,
+      true,
+      true,
       true,
       true
     ]
   },
-  "hash": "836dcdeffebb751dd7439158c70af504ba3b464f051a2584ea66e9a8dccf1454"
+  "hash": "5fa7c161d4a4e6606f9ed5dbd7ee0be8ae8c3429a3fb403a8b2589c086306a5d"
 }

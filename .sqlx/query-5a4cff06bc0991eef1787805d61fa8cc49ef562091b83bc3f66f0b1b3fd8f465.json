@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id as \"id!: i32\",\n                subscriber_id as \"subscriber_id!: i32\",\n                campaign_id as \"campaign_id!: i32\",\n                list_id as \"list_id!: i32\",\n                joined_at as \"joined_at!: DateTime<Utc>\",\n                current_position as \"current_position!: i32\",\n                last_email_sent_at as \"last_email_sent_at?: DateTime<Utc>\",\n                next_email_scheduled_at as \"next_email_scheduled_at?: DateTime<Utc>\",\n                completed as \"completed!: bool\",\n                created_at as \"created_at?: DateTime<Utc>\",\n                updated_at as \"updated_at?: DateTime<Utc>\"\n            FROM subscriber_sequence_progress\n            WHERE subscriber_id = $1 AND campaign_id = $2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "subscriber_id!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "campaign_id!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "list_id!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "joined_at!: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "current_position!: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "last_email_sent_at?: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "next_email_scheduled_at?: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "completed!: bool",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at?: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at?: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "5a4cff06bc0991eef1787805d61fa8cc49ef562091b83bc3f66f0b1b3fd8f465"
+}
