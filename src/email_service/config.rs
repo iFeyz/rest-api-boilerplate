@@ -27,9 +27,9 @@ impl Default for SmtpConfig {
         Self {
             server: "ssl0.ovh.net".to_string(),
             port: 465,
-            username: "sender@wayfe.store".to_string(),
-            password: "wayfesender".to_string(),
-            sender_email: "sender@wayfe.store".to_string(),
+            username: "info@wayfe.net".to_string(),
+            password: "JFHSUifhu8fida99".to_string(),
+            sender_email: "info@wayfe.net".to_string(),
         }
     }
 } 

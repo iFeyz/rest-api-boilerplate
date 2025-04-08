@@ -104,38 +104,77 @@ impl SequenceEmailRepository {
     pub async fn find_all(&self, dto: PaginationDto) -> Result<Vec<SequenceEmail>, ApiError> {
         let offset = (dto.page.unwrap_or(1) - 1) * dto.limit.unwrap_or(10);
         let limit = dto.limit.unwrap_or(10);
+        
+        // Check if a campaign_id is provided to filter by
+        let campaign_id = dto.campaign_id;
+        
+        let query = if campaign_id > 0 {
+            // Filter by campaign_id if it's provided
+            sqlx::query_as!(
+                SequenceEmail,
+                r#"
+                SELECT 
+                    id as "id!: i32",
+                    campaign_id as "campaign_id!: i32",
+                    position as "position!: i32",
+                    subject as "subject!: String",
+                    body as "body!: String",
+                    template_id as "template_id?: i32",
+                    content_type as "content_type!: _",
+                    status as "status!: _",
+                    metadata as "metadata!: JsonValue",
+                    is_active as "is_active!: bool",
+                    send_at as "send_at?: DateTime<Utc>",
+                    delay_type as "delay_type!: String",
+                    delay_value as "delay_value?: i32",
+                    delay_unit as "delay_unit?: String",
+                    created_at as "created_at!: DateTime<Utc>",
+                    updated_at as "updated_at!: DateTime<Utc>"
+                FROM sequence_emails
+                WHERE campaign_id = $1
+                ORDER BY position ASC
+                LIMIT $2 OFFSET $3
+                "#,
+                campaign_id,
+                limit,
+                offset
+            )
+            .fetch_all(&self.pool)
+            .await
+        } else {
+            // No campaign_id filter, get all emails
+            sqlx::query_as!(
+                SequenceEmail,
+                r#"
+                SELECT 
+                    id as "id!: i32",
+                    campaign_id as "campaign_id!: i32",
+                    position as "position!: i32",
+                    subject as "subject!: String",
+                    body as "body!: String",
+                    template_id as "template_id?: i32",
+                    content_type as "content_type!: _",
+                    status as "status!: _",
+                    metadata as "metadata!: JsonValue",
+                    is_active as "is_active!: bool",
+                    send_at as "send_at?: DateTime<Utc>",
+                    delay_type as "delay_type!: String",
+                    delay_value as "delay_value?: i32",
+                    delay_unit as "delay_unit?: String",
+                    created_at as "created_at!: DateTime<Utc>",
+                    updated_at as "updated_at!: DateTime<Utc>"
+                FROM sequence_emails
+                ORDER BY created_at DESC
+                LIMIT $1 OFFSET $2
+                "#,
+                limit,
+                offset
+            )
+            .fetch_all(&self.pool)
+            .await
+        };
 
-        let sequence_emails = sqlx::query_as!(
-            SequenceEmail,
-            r#"
-            SELECT 
-                id as "id!: i32",
-                campaign_id as "campaign_id!: i32",
-                position as "position!: i32",
-                subject as "subject!: String",
-                body as "body!: String",
-                template_id as "template_id?: i32",
-                content_type as "content_type!: _",
-                status as "status!: _",
-                metadata as "metadata!: JsonValue",
-                is_active as "is_active!: bool",
-                send_at as "send_at?: DateTime<Utc>",
-                delay_type as "delay_type!: String",
-                delay_value as "delay_value?: i32",
-                delay_unit as "delay_unit?: String",
-                created_at as "created_at!: DateTime<Utc>",
-                updated_at as "updated_at!: DateTime<Utc>"
-            FROM sequence_emails
-            ORDER BY created_at DESC
-            LIMIT $1 OFFSET $2
-            "#,
-            limit,
-            offset
-        )
-        .fetch_all(&self.pool)
-        .await?;
-
-        Ok(sequence_emails)
+        query.map_err(ApiError::DatabaseError)
     }
     
     pub async fn update(&self, id: i32, dto: UpdateSequenceEmailDto) -> Result<Option<SequenceEmail>, ApiError> {

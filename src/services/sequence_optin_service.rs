@@ -77,13 +77,16 @@ impl SequenceOptinService {
                     true // Premier email
                 ).await?;
                 
-                // Mettre à jour la progression avec la date du prochain envoi
+                // Mettre à jour la progression avec la date du prochain envoi et la position
                 let update_dto = UpdateSequenceProgressDto {
-                    current_position: Some(1),
+                    current_position: Some(email.position), // Use the exact position from the email
                     last_email_sent_at: None,
                     next_email_scheduled_at: Some(next_send_time),
                     completed: None,
                 };
+                
+                tracing::debug!("Initializing sequence with position {} for campaign {}, subscriber {}", 
+                                email.position, campaign.id, subscriber_id);
                 
                 let updated_progress = self.sequence_progress_repo
                     .update(progress.id, update_dto).await?;
@@ -302,8 +305,17 @@ impl SequenceOptinService {
                         // Mettre à jour la progression
                         let next_email = self.get_next_sequence_email(campaign_id, position).await?;
                         
+                        // Current position should be set to the next email's position, not incremented
+                        let next_position = if let Some(next) = &next_email {
+                            next.position
+                        } else {
+                            position + 1 // If there's no next email, increment to mark as "past the last email"
+                        };
+                        
+                        tracing::debug!("Updating position from {} to {}", position, next_position);
+                            
                         let mut update_dto = UpdateSequenceProgressDto {
-                            current_position: Some(position + 1),
+                            current_position: Some(next_position),
                             last_email_sent_at: Some(now),
                             next_email_scheduled_at: None,
                             completed: None,
@@ -317,7 +329,7 @@ impl SequenceOptinService {
                                 false // Ce n'est pas le premier email
                             ).await?;
                             
-                            tracing::info!("Scheduling next email at: {}", next_send_time);
+                            tracing::info!("Scheduling next email (position {}) at: {}", next.position, next_send_time);
                             update_dto.next_email_scheduled_at = Some(next_send_time);
                         } else {
                             // Pas de prochain email, marquer comme terminé
@@ -326,7 +338,8 @@ impl SequenceOptinService {
                         }
                         
                         // Mettre à jour la progression
-                        self.sequence_progress_repo.update(progress.id, update_dto).await?;
+                        let updated_progress = self.sequence_progress_repo.update(progress.id, update_dto).await?;
+                        tracing::debug!("Progress updated, new position: {}", updated_progress.current_position);
                         
                         sent_count += 1;
                     },

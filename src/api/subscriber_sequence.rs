@@ -1,7 +1,10 @@
 use actix_web::{web, HttpResponse, HttpRequest};
 use crate::error::ApiError;
 use crate::services::sequence_optin_service::SequenceOptinService;
+use crate::services::subscriber_list_service::SubscriberListService;
 use crate::services::subscriber_service::SubscriberService;
+use crate::models::subscriber_list::{CreateSubscriberListDto, SubscriptionStatus};
+use serde_json::Value as JsonValue;
 use std::sync::Arc;
 use prometheus::IntCounterVec;
 use crate::monitoring::Metrics;
@@ -25,7 +28,8 @@ pub fn config(metrics: Arc<Metrics>) -> actix_web::Scope {
             move |_req: HttpRequest, 
                   path: web::Path<(String, i32)>, 
                   sequence_service: web::Data<SequenceOptinService>,
-                  subscriber_service: web::Data<SubscriberService>| {
+                  subscriber_service: web::Data<SubscriberService>,
+                  subscriber_list_service: web::Data<SubscriberListService>| {
                 counter.with_label_values(&["add_subscriber_to_list_with_sequence"]).inc();
                 async move {
                     let (subscriber_email, list_id) = path.into_inner();
@@ -47,6 +51,19 @@ pub fn config(metrics: Arc<Metrics>) -> actix_web::Scope {
                         },
                         Err(e) => return Err(e)
                     };
+                    
+                    // Add subscriber to list
+                    let adding_to_list = subscriber_list_service.create_subscriber_list(CreateSubscriberListDto {
+                        subscriber_id: subscriber.id,
+                        list_id: list_id,
+                        meta: JsonValue::Null,
+                        status: SubscriptionStatus::Confirmed,
+                    }).await;
+                    
+                    if let Err(e) = adding_to_list {
+                        tracing::error!("Failed to add subscriber to list: {}", e);
+                        return Err(ApiError::BadRequest("Failed to add subscriber to list".to_string()));
+                    }
                     
                     // Initialize the sequences opt-in
                     match sequence_service.initialize_sequences_for_subscriber(subscriber.id, list_id).await {

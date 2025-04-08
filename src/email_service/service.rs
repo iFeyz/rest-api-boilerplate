@@ -315,36 +315,32 @@ impl EmailService {
 
             tracing::info!("Processing batch of {} subscribers", subscribers.len());
 
-            // Create batch of emails with tracking pixels
-            let mut batch_recipients = Vec::new();
-            let mut tracked_body = String::new();
-
+            // Send emails individually to each subscriber
             for subscriber in &subscribers {
                 // Add tracking pixel to email body
-                tracked_body = self.add_tracking_to_email(
+                let tracked_body = self.add_tracking_to_email(
                     body,
                     campaign_id,
                     sequence_email_id,
                     subscriber.id,
                 );
-                batch_recipients.push(subscriber.email.clone());
-            }
 
-            // Send the batch
-            match self.send_batch_email(batch_recipients, subject, &tracked_body).await {
-                Ok(_) => {
-                    stats.successful_sends += subscribers.len() as i32;
-                    tracing::info!("Successfully sent batch of {} emails", subscribers.len());
-                }   
-                Err(e) => {
-                    stats.failed_sends += subscribers.len() as i32;
-                    let error_msg = format!("Failed to send batch: {}", e);
-                    tracing::error!("{}", error_msg);
-                    // Record the first email in batch for error tracking
-                    if let Some(first_subscriber) = subscribers.first() {
-                        stats.failures.push((first_subscriber.email.clone(), error_msg));
+                // Send individual email
+                match self.send_email(&subscriber.email, subject, &tracked_body).await {
+                    Ok(_) => {
+                        stats.successful_sends += 1;
+                        tracing::info!("Successfully sent email to {}", subscriber.email);
+                    }
+                    Err(e) => {
+                        stats.failed_sends += 1;
+                        let error_msg = format!("Failed to send email: {}", e);
+                        tracing::error!("{} for recipient {}", error_msg, subscriber.email);
+                        stats.failures.push((subscriber.email.clone(), error_msg));
                     }
                 }
+
+                // Add a small delay between sends to avoid overwhelming the SMTP server
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             }
 
             offset += FETCH_SIZE;

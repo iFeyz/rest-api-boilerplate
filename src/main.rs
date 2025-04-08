@@ -448,7 +448,7 @@ async fn main() -> std::io::Result<()> {
             // Add protected routes with auth middleware
             .service(
                 web::scope("")
-                    .wrap(AuthMiddleware::new("OlH2V4j/OMfBnxfUvsrjoiD9xcI+/ihMv1go8/hf2HI=".to_string()))
+                  //  .wrap(AuthMiddleware::new("OlH2V4j/OMfBnxfUvsrjoiD9xcI+/ihMv1go8/hf2HI=".to_string()))
                     .route("/test", web::get().to(|| async { HttpResponse::Ok().body("Test route works!") }))
                     .service(
                         web::scope("/api")

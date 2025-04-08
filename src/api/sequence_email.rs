@@ -35,18 +35,26 @@ pub fn config(metrics: Arc<Metrics>) -> actix_web::Scope {
         }))
         .route("", web::get().to({
             let counter = counter_arc.clone();
-            move |_req: HttpRequest, service: web::Data<SequenceEmailService>, query: web::Query<PaginationDto>| {
+            move |req: HttpRequest, service: web::Data<SequenceEmailService>, query: web::Query<PaginationDto>| {
                 counter.with_label_values(&["get_sequence_emails"]).inc();
                 async move {
                     let pagination = query.into_inner();
-                    tracing::debug!("Pagination params: {:?}", pagination);
+                    tracing::debug!("Getting sequence emails with params: campaign_id={}, page={:?}, limit={:?}", 
+                        pagination.campaign_id, pagination.page, pagination.limit);
                     
                     let sequence_emails = service.find_all(pagination).await?;
-                    if sequence_emails.is_empty() {
-                        Ok::<HttpResponse, ApiError>(HttpResponse::Ok().json(Vec::<SequenceEmail>::new()))
-                    } else {
-                        Ok::<HttpResponse, ApiError>(HttpResponse::Ok().json(sequence_emails))
-                    }
+                    Ok::<HttpResponse, ApiError>(HttpResponse::Ok().json(sequence_emails))
+                }
+            }
+        }))
+        .route("/campaign/{campaign_id}", web::get().to({
+            let counter = counter_arc.clone();
+            move |req: HttpRequest, path: web::Path<i32>, service: web::Data<SequenceEmailService>| {
+                counter.with_label_values(&["get_sequence_emails_by_campaign"]).inc();
+                async move {
+                    let campaign_id = path.into_inner();
+                    let sequence_emails = service.find_by_campaign_id(campaign_id).await?;
+                    Ok::<HttpResponse, ApiError>(HttpResponse::Ok().json(sequence_emails))
                 }
             }
         }))
@@ -67,6 +75,20 @@ pub fn config(metrics: Arc<Metrics>) -> actix_web::Scope {
                 async move {
                     let sequence_email = service.update_sequence_email(id.into_inner(), sequence_email.into_inner()).await?;
                     Ok::<HttpResponse, ApiError>(HttpResponse::Ok().json(sequence_email))
+                }
+            }
+        }))
+        .route("/{id}", web::get().to({
+            let counter = counter_arc.clone();
+            move |req: HttpRequest, path: web::Path<i32>, service: web::Data<SequenceEmailService>| {
+                counter.with_label_values(&["get_sequence_email"]).inc();
+                async move {
+                    let id = path.into_inner();
+                    let sequence_email = service.find_by_id(id).await?;
+                    match sequence_email {
+                        Some(email) => Ok::<HttpResponse, ApiError>(HttpResponse::Ok().json(email)),
+                        None => Err(ApiError::NotFound),
+                    }
                 }
             }
         }))
